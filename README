@@ -1,1 +1,9 @@
 Codici Matlab inferenza Bayesiana
+
+%Per caricare sul server
+git pull origin master
+
+%Per scaricare dal server
+git push origin master
+
+
