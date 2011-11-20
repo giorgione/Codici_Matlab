@@ -1,0 +1,110 @@
+% Esempio_MSE_2.m
+%
+% Costruisco la Retta dei minimi quadrati per l' insieme di osservazioni
+% applicando la (MSE):
+%
+%   t           t
+%  Y * Y * a = Y * b 
+%
+%
+% Procedimento:
+%
+% 1) Genero un Set di Dati 2-D
+%
+% 2) Seleziono 10 Pattern casualmente e ne assegno 5 alla classe W1 , 5
+%    alla classe W2
+%
+% 3) Effettuo il Labeling ed ottengo l' insieme V dei Pattern di Training
+%
+% 4) Costruisco la Matrice delle osservazioni Y (10 x 2)
+%
+% 5) Costruisco il Vettore dei Margini b (10 x 1)
+%
+% 6) Risolvo:
+%                   t           t
+%                  Y * Y * a = Y * b 
+%
+% 7) Disegno la Retta dei Minimi Quadrati
+
+
+clc;clear;close all;
+n=10;
+
+k=menu('Seleziona i Dati:','1)Dati Non Separabili','2)Dati Linearmente Separabili');
+switch k
+    case 1
+        %DATI NON SEPARATI LINEARMENTE
+        
+        %Seleziona 10 vettori casualmente
+        [x1 x2]=meshgrid(-10:.025:10);
+        n=length(x1(:));
+        indici=round(1+rand(1,10)*n);
+        Y=[x1(:).';x2(:).'];
+        Vet=Y(:,indici);  
+        n=5;
+    case 2
+        %DATI NON SEPARATI LINEARMENTE
+        
+        %estraggo i Dati per la Classe c1
+        x1=EstrazioneNormale(20,2,10);
+        y1=EstrazioneNormale(20,2,10);
+
+        %estraggo i Dati per la Classe c2
+        x2=EstrazioneNormale(1,2,10);
+        y2=EstrazioneNormale(2,1,10);
+        Vet=[x1 x2;y1 y2];
+        n=length(x1);
+end
+
+
+%Suppongo che:
+%- i primi 5 vettori (y1...y5) appartengono ad W1 --> label 1
+%- gli altri 5 (y6..,y10) appartengano ad W2 --> label -1
+V=[Vet(:,1:n) Vet(:,n+1:2*n)]
+V=[ones(1,2*n);V]
+V(:,n+1:2*n)=-V(:,n+1:2*n);
+
+%Suppongo che:
+%- i primi 5 vettori (y1...y5) appartengono ad W1 --> label 1
+%- gli altri 5 (y6..,y10) appartengano ad W2 --> label -1
+plot(Vet(1,1:n), Vet(2,1:n),'or','MarkerSize',5,'MarkerFaceColor','r');
+hold on;
+plot(Vet(1,n+1:2*n), Vet(2,n+1:2*n),'ob','MarkerSize',5,'MarkerFaceColor','b')
+
+
+
+
+n=2*n;
+%Mischio i Dati in maniera casuale
+I=randperm(n);
+Vet=Vet(:,I)
+
+%Costruisco la Matrice delle Osservazioni
+Y=V.';
+
+%genero il vettore dei Margini b
+b=.5*rand(n,1);
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Algoritmo del gradiente per la ricerca del Minimo della funzione
+% Percettrone
+
+%Calcolo il minimo
+[a Val]= fminsearch(@(x) Mse(Y,x,b),[0;1 ;-2],{Y,b})
+plot3(a(2),a(3),Val,'oy','MarkerSize',5,'MarkerFaceColor','y')
+
+
+%Calcolo il prodotto e conto il numero di valori negativi che individua il
+%numero di valori erroneamente classificati
+Errori=a.'*V;
+NEr=length(find(Errori<0));
+
+
+
+t=[-200;200];
+syms x y;
+S=solve(a(2:3).'*[x;y]+a(1))
+ezplot(S,[-100 100])
+title([ 'Retta di Separazione MSE  numero errori:' num2str(NEr) ])

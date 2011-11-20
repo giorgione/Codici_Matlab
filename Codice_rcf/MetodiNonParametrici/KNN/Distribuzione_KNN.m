@@ -1,0 +1,33 @@
+%function P=Distribuzione_KNN(x,TrainingSet)
+%
+% Calcolo la Distribuzione di Probabilità P(x) stima dei Dati TrainingSet nei
+% punti x attraverso l'algoritmo KNN.
+% In questo modo sono in grado di andare a calcolare l' integrale di P(x)
+%
+function P=Distribuzione_KNN(x,TrainingSet)
+
+
+n=length(TrainingSet);
+[r c]=size(x);
+kn=sqrt(n);
+
+%Per ogni x  calcolo la distanza dai vettori del training Set
+Distanza=zeros(c,n);
+for i=1:c
+    %calcolo la distanza dai vettori del training Set
+    for j=1:n
+        Distanza(i,j)=abs(x(i)-TrainingSet(j)); 
+    end
+end
+%Ordina le righe di Distanza in modo crescente: 
+%   - I contiene gli indici
+%   - D contiene la Matrice delle Distanze Oridnate
+[D,I]=sort(Distanza,2);
+
+%Per ogni x in TestSet calcolo il Volume contente k-vicini 
+V=zeros(c,1);
+for i=1:c
+    Vn(i)=2*D(i,kn); % calcola il volume in funzione dei k vicini
+end 
+P=zeros(1,c);
+P=kn./(n.*(Vn));

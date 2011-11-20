@@ -1,0 +1,63 @@
+% Discriminanti Lineari Generalizzati:
+% utilizzo gli:
+%
+%           - augmented weight-vector
+%
+%           - augmented feature-vector
+%       
+%     y=g(x)=a(1)+a(2)*x+a(3)*x^2   con a=[1;1;1]
+%
+% Problema di classificazione 1-D
+clc;clear;close all
+%Vettore dei Pesi
+%
+a=[-1;1;2];
+[x1 x2]=meshgrid(-10:.25:10);
+
+y3=x1.*x2;
+y=[x1(:).'; x2(:).'; y3(:).'];
+
+plot3(y(1,:),y(2,:),y(3,:),'LineWidth',2)
+xlabel('y1');
+ylabel('y2');
+zlabel('y3');
+
+syms x1 x2
+%Calcolo lo spazio Nullo di y: rappresenta il piano di Separazione
+y=[x1; x2; x1*x2];
+N=null(y.');
+N=subs(N, {x1,x2}, {1,2});
+DisegnaPiano(N(:,1),N(:,2))
+
+G=a.'*y;
+Sol=solve(G);
+G=@(x) a(1)*x(1)+a(2)*x(2)+a(3)*x(1)*x(2);
+
+title('Superfice di Decisione')
+[x1 x2]=meshgrid(-10:.25:10);
+
+[m n]=size(x1);
+% Seleziona 10 punti Random e li classifico
+indici=round(1+rand(1,10)*m*n);
+x1=x1(:);
+x2=x2(:);
+figure; hold on;
+for i=1:length(indici)
+    I=indici(i);
+        x=[x1(I); x2(I)];
+        if G(x)>0
+            %Il punto appartiene alla Regione R1: lato positivo
+            plot(x1(I), x2(I),'or','MarkerSize',5,'MarkerFaceColor','r')
+        end
+        if G(x)<0
+            %Il punto appartiene alla Regione R2: lato Negativo
+            plot(x1(I), x2(I),'ob','MarkerSize',5,'MarkerFaceColor','b')
+        end
+        if G(x)==0
+            %Il punto appartiene alla Regione R2: lato Negativo
+            plot(x1(I), x2(I),'om','MarkerSize',5,'MarkerFaceColor','m')
+        end
+end
+x=-10:.0125:10;
+y=-x./(-1+2*x);
+plot(x,y,'g','LineWidth',2)

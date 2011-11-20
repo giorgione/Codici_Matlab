@@ -1,0 +1,47 @@
+clc;clear;close all;
+syms x  y ;
+X=[x;y];
+M=[3;2];
+%Matrice di Varianza Covarianza
+S=[5^2 0;
+   0 3^2];
+
+P=GaussianaMulti(S,M,X);
+
+
+
+%Applico la trasformazione whitening alla Distribuzione Gaussiana F
+[Media,Sigma,Aw]=WhiteningTransform(M,S);
+
+[x y]=meshgrid(-10:.25:10,-10:.25:10);
+[m,n]=size(x);
+X=[reshape(x,1,m*n);reshape(y,1,m*n)];
+Fw=zeros(m,n);
+
+for i=1:m*n
+    Fw(i)=GaussianaMulti(Sigma,Media,X(:,i));
+    F(i)=GaussianaMulti(S,M,X(:,i));
+end
+Fw=reshape(Fw,m,n);
+F=reshape(F,m,n);
+
+xlabel('x');
+ylabel('y');
+contour(x,y,F)
+hold on;
+plot(M(1),M(2),'or','MarkerSize',3);
+
+pause;
+%surf(x,y,Fw);hold on;
+xlabel('x');
+ylabel('y');
+contour(x,y,Fw)
+
+plot(Media(1),Media(2),'or','MarkerSize',3);
+
+syms x y;
+X=[x;y];
+Pw=GaussianaMulti(Sigma,Media,X);
+
+
+

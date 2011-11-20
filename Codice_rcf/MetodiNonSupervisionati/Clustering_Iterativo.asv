@@ -1,0 +1,139 @@
+%Clustering a minima distanza ITERATIVO su un SET di 
+
+clc;close all;clear;
+
+Dati=[0.608; -1.59; 0.235; 0.3949; -2.249; 2.704; -2.473; 0.672;
+      0.262; 1.072; -1.773; 0.537; 3.24; 2.4; -2.499; 2.608;
+      -3.458; 0.257; 2.569; 1.415; 1.410; -2.653; 1.396; 3.286; -0.712];
+ 
+%Numero di Clusters
+c=2;
+
+%Genero casualmente 2 Valori per le medie
+b=max(Dati);
+ a=min(Dati);
+ %Inizializzo i Valori della MEDIA con 2 numeri estratti a caso nell'
+ %intervallo dei campioni
+ Uo=a+(b-a)*rand(1,2);
+ 
+ 
+ 
+ n=length(Dati);
+ 
+ Fun_Errore=@(m,x) sum((x-m).^2);
+ 
+ %Inizializzo in modo Casuale i 2 cluster
+ 
+ Dsort=sort(Dati);
+ D1=Dsort(1:4);
+ D2=Dsort(5:25);
+ 
+ D1start=D1;
+ D1start=D2;
+ 
+ Uo=[ mean(D1); mean(D2)];
+ 
+ %N(i) misura il numero di Campioni che cadono nel cluster i-esimo
+ N=zeros(1,c);
+ N(1,2)=4;
+ N(2,2)=21;
+ 
+ U= [[0 ;0] Uo];
+ 
+ Je(1)=0;
+ %Valuto l' Errore per la Configurazione corrente
+ Je(2)=Fun_Errore(U(1,2),D1)+Fun_Errore(U(2,2),D2);
+ 
+ plot(D1,0,'or','MarkerSize',2,'MarkerFaceColor','r');hold on
+ plot(U(1,2),0,'or','MarkerSize',4,'MarkerFaceColor','g')
+ 
+ plot(D2,0,'ob','MarkerSize',2,'MarkerFaceColor','b');
+ plot(U(2,2),0,'ob','MarkerSize',4,'MarkerFaceColor','g')
+
+ %Inizio il Processo ITERATIVO
+ 
+ I=2;
+ tol=1;
+ while(abs(Je(I-1)-Je(I))>tol)
+ 
+     %seleziono in modo random i pattern
+     Ind=randperm(n);
+
+     
+     for k=1:n
+         %Seleziono il pattern
+         X=Dati(Ind(k));
+
+         %Individuo l' insieme di Appartenenza di X
+         if(isempty(find(D1==X))==0)
+             source=1
+         else
+             source=2
+         end
+
+
+         %Calcolo la distanza di X dalle Medie Correnti
+         Dis=(U(:,I)-X).^2;
+
+         %Seleziono la Distanza Minima: dest memorizza l' indice della MEDIA
+         %+ VICINA al pattern X
+         [Val,dest]=min(Dis);
+         dest
+         if(N(dest,I)~=1)
+             %Per ogni classe valuto le variazioni nell' Errore
+             for J=1:c
+                if(source==J)
+                      %Calcolo i fattori correttivi: Errore che ho nel
+                      %trasferire il Pattern da Di a Dj
+                      % Tolgo il pattern da D(source)
+                      l(J)=(X-U(J,I))^2*N(J,I)/(N(J,I)-1);
+                else
+                      %Calcolo i fattori correttivi: Errore che ho nel
+                      %trasferire il Pattern da Di a Dj
+                      % Inserisco il pattern in Dj
+                      l(J)=(X-U(J,I))^2*N(J,I)/(N(J,I)+1);
+                end
+             end
+             if(l(dest)==min(l))
+
+                 %Faccio passare il pattern indice i D(source)a D(dest):
+                 %devo considerare anche il caso in cui il pattern rimane
+                 %in D(source)
+                 if(source==2 && source~=dest)
+                     D1=union(D1,X);
+                     D2=setdiff(D2,X);
+                 end
+                 
+                 if(source==1 && source~=dest)
+                     D2=union(D2,X);
+                     D1=setdiff(D1,X);
+                 end
+
+                 %Aggiorno il Calcolo delle Medie
+                 U(1,I+1)=mean(D1);
+                 U(2,I+1)=mean(D2);
+                 
+                 %Aggiorno il Numero di Elementi contenuti in D1 e D2
+                 N(1,I+1)=length(D1);
+                 N(2,I+1)=length(D2);
+                 
+                 %Aggiorno l' Errore
+                 Je(I+1)=Fun_Errore(U(1,I+1),D1)+Fun_Errore(U(2,I+1),D2);
+             end
+         end
+     end
+    
+     I=I+1;
+ end
+ 
+ 
+ figure;
+ 
+ %Cluster Finali
+ plot(D1,0,'or','MarkerSize',2,'MarkerFaceColor','r');hold on
+ plot(U(1,2),0,'or','MarkerSize',4,'MarkerFaceColor','g')
+ 
+ plot(D2,0,'ob','MarkerSize',2,'MarkerFaceColor','b');
+ plot(U(2,2),0,'ob','MarkerSize',4,'MarkerFaceColor','g')
+ 
+ 

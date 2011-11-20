@@ -1,0 +1,112 @@
+% MetodoLagrange6.m
+%
+%Risolvo attraverso il metodo di Lagrange il seguente problema di
+%ottimizazione a vincoli non lineari (DISUGUAGLIANZE) in R^2
+%
+% Funzione obbiettivo:
+%
+%  F(x,y)= cos(x1)*sin(x2)
+%
+% Vincoli non Lineari (ricerca sui punti di frontiera):
+%
+%  1) x^2+Y^2<=3  -> circonferenza di raggio 3 centrata nell' origine
+%
+
+clc;clear;close all
+% carattere di newline
+s=sprintf('\n');
+
+syms x1 x2 x3 x4 real
+r1=3;
+r2=2;
+F1=cos(x1)*sin(x2);
+G1=x1^2+x2^2-r1^2;
+G2=(x1-2)^2+(x2-1)^2-r2^2;
+
+%Disegno la curva definita dai vincoli sul grafico di F
+[xt1,yt1]=DisegnaCirconferenza([0;0],r1,30,0);
+fig1=figure;
+plot(xt1,yt1,'Color','b','LineWidth',2);hold on;
+
+[xt2,yt2]=DisegnaCirconferenza([2;1],r2,30,0);
+plot(xt2,yt2,'Color','b','LineWidth',2);
+
+xt=[xt1;xt2];
+yt=[yt1;yt2];
+
+Fnum=cos(xt1).*sin(yt1);
+figure;
+h=plot3(xt1,yt1,Fnum);
+set(h,'Color','b','LineWidth',2);hold on
+
+Fnum=cos(xt2).*sin(yt2);
+h=plot3(xt2,yt2,Fnum);
+set(h,'Color','b','LineWidth',2);hold on
+ezsurf(F1,[-5 5 -5 5]);
+
+
+teta=[x3;x4];
+%Equazione di Lagrange con 2 moltiplicatori
+L=F1+teta(1).'*G1+teta(2).'*G2;
+%Vettore delle variabili:
+%[  x      ]   ->  x1
+%[  y      ]   ->  x2
+%[  teta1  ]   ->  x3
+
+%Risolvo il Problema di Lagrange per il Calcolo dei Punti Stazionari della
+%Lagrangiana  -> sistema di Equazioni Non Lineari risolte mediante il
+%metodo di Newton con punto iniziale Xo
+J=jacobian(L).';
+
+
+H=hessian(L,[x1 x2 x3 x4]);
+
+
+%Risolvo analiticamente il Sistema di Equazioni: 
+Sol=solve(J(1),J(2),J(3),J(4),'x1','x2','x3','x4');
+Punti=double([Sol.x1 Sol.x2 Sol.x3 Sol.x4]);
+[m,n]=size(Punti);
+
+disp(s)
+display('Punti Candidati Estremi Locali (x,y,teta):')
+disp(Punti)
+
+[m,n]=size(Punti)
+Soluzione=[];
+for I=1:m
+    
+    if isreal(Punti(I,1)) && isreal(Punti(I,2))
+        Hes=double(subs(H,{x1,x2,x3,x4},{Punti(I,1),Punti(I,2),Punti(I,3),Punti(I,4)}));
+        D=det(Hes)
+        Segno=prod(diag(Hes))
+        Val=double(subs(F1,{x1,x2},{Punti(I,1),Punti(I,2)}));
+     
+        %Val1 risulta sempre uguale a Val per la definizione di problema
+        %Lagrangiano
+        %Val1=subs(L,{x1,x2,x3},{X(I),Y(I),Teta1(I)});
+%         if double(Segno) >0 
+%           display(['F(' num2str(Punti(I,1)) ' , ' num2str(Punti(I,2)) ')=' num2str(Val) ' : punto di Massimo Locale (' num2str(Segno) ')'])
+%         else
+%             if double(Segno) < 0 
+%         %      display(['F(' num2str(Punti(I,1)) ' , ' num2str(Punti(I,2)) ')=' num2str(Val) ' : punto di Minimo Locale(' num2str(Segno) ')'])
+%             else
+%       
+%         if Segno~=0
+%             display(['F(' num2str(Punti(I,1)) ' , ' num2str(Punti(I,2)) ')=' num2str(Val) ' : punto Stazionario (Angoloso,Flesso) (' num2str(Segno) ')'])
+%         end
+        
+        %plot(double(X(I)),double(Y(I)),'og','MarkerSize',5,'MarkerFaceColor','g');
+        plot3(double(Punti(I,1)),double(Punti(I,2)),Val,'og','MarkerSize',5,'MarkerFaceColor','g');
+    end
+end
+
+
+display('Punti Soluzione (x,y,teta):')
+disp(Soluzione);
+disp(s);
+
+
+
+
+
+

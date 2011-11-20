@@ -1,0 +1,83 @@
+%Calcolo della Probabilità della Sequenza di Stati Visibili
+%     t
+% P( V ) attraverso l' algoritmo iterativo.
+%
+%Considero la Catena di Markov costituita da:
+%
+% - 4 STATI NASCOTI:  W0, W1, W2, W3 
+%
+% - 1 STATO VISIBILE Iniziale assumibile  Vo 
+%
+% - 4 STATI VISIBILI: V1,V2, V3, V4
+%
+% Matrice delle TRANSIZIONI DI STATO: A(i,j)= P( Wj(t)| Wi(t-1))
+clc;clear;
+
+A=[   1   0   0    0;
+     .2  .3  .1   .4;
+     .2  .5  .2   .1;
+     .8  .1  .0   .1];
+%
+
+
+% Matrice degli STATI VISIBILI: B(i,j)= P( Vj(t)| Wi(t) ) probabilità che
+% lo stato NASCOSTO Wi assuma stato VISIBILE Vj
+%  V0 V1 V2 V3 V4
+B=[1  0  0  0  0;  %W0  
+   0 .3 .4 .1 .2;  %W1
+   0 .1 .1 .7 .1;  %W2
+   0 .5 .2 .1 .2]; %W3 
+
+
+% Definisco la Sequenza di Stati Visibili ->5=T
+V=[3 1 3 2 0];
+
+%Le Matrici sono indicizzate da 0
+
+%Suppongo che lo stato iniziale sia W1 al tempo To=0
+StatoIniziale=1;
+P_StatoIniziale=1;
+%Genero tutte le possibili transizioni degli stati Wr=(W1,W2,W3,W0) di lunghezza T=5
+%aventi come stato iniziale W1
+Wr_T=pick(0:3,4,'or');
+[m,n]=size(Wr_T);
+Wr_T=[StatoIniziale*ones(m,1) Wr_T];
+[m,n]=size(Wr_T);
+
+
+%                                          T
+%Calcolo la Probabilità della SEQUENZE P( Wr )
+P_Wr_t=ones(m,1);
+P_Vt_Wr_t=ones(m,1);
+P_Vt=ones(m,1);
+for i=1:m % considera tutte le possibili transizioni di stato
+    V
+    Wr=Wr_T(i,:)
+    P_Wr_t(i)=P_StatoIniziale*B(V(1),StatoIniziale); % --> Stato Iniziale W1
+    display([ 'P(W1)* b(' num2str(V(1)) ',2)  -> ' num2str(A(2,1)) ' * '  num2str(B(V(1),2)) ] )
+    for t=2:5 % considera gli stati VISIBILI : j
+            
+            I=Wr(t-1); %calcolo lo Stato NASCOSTO al tempo t-1
+            J=Wr(t);  %calcolo lo Stato NASCOSTO al tempo t
+            [I J]=Indici(I,J);
+            
+            K=V(t)+1;
+         
+          
+        %Considero lo Stato Visibile j al tempo t
+        
+        %                                          T
+        %Calcolo la Probabilità della SEQUENZE P( Wr )
+        P_Wr_t(i)=P_Wr_t(i) * A(I,J);
+        
+        P_Vt_Wr_t(i)=P_Vt_Wr_t(i)*B(J,K);
+        
+        P_Vt(i)=P_Vt(i)*A(I,J)*B(J,K);
+        
+        display([ 'a(' num2str(I) ',' num2str(J) ')*b( ' num2str(J) ',' num2str(K) ')  ->' num2str(A(I,J)) ' * ' num2str(B(J,K+1)) ] )
+        
+        
+    end    
+    P_Vt(i)
+end
+P_Vt=sum(P_Vt)

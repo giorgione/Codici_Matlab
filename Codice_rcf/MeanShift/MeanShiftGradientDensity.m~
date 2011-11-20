@@ -1,0 +1,47 @@
+%Esempio del Mean Shift
+%
+%Genero dei punti da una Mistura di gaussiane 2D
+clc;clear;close all;
+mu1 = [2 3];
+mu2 = [ 30 10];
+SIGMA1 = [10  0.5;
+          0.5 3];
+SIGMA2 = [10 -0.6;
+          -0.6 8 ];
+Npoints=150;
+Xi = mvnrnd(mu1,SIGMA1,Npoints)+mvnrnd(mu2,SIGMA2,Npoints);
+
+%Disegno  il punto iniziale
+plot(Xi(:,1),Xi(:,2),'+');hold on;
+
+%Disegno il punto Finale
+
+%syms x u s;
+%f=exp(-x^2/2);
+%df=diff(f,'x')
+
+g=@(x)-0.5*(exp(-x^2/2));
+X=[60 60];
+plot(X(1),X(2),'or'); hold on
+h=10;
+
+%Eseguo T iterazioni per vedere dove va il Mean shift
+T=20;
+t=1;
+MeanShift=zeros(T,2);
+while t< T
+   %Calcolo il Mean Shift Vector
+   X=repmat(X,Npoints,1);
+   Y=(X-Xi)/h;
+   Num=0;
+   DeNum=0;
+   for i=1:Npoints
+        y=Y(i,:)*Y(i,:).'
+        Num=Num+Xi(i,:)*g(y);
+        DeNum=DeNum+g(y);
+   end
+   MeanShift(t,:)=Num/DeNum; 
+   X=X(1,:)-MeanShift(t,:);
+   t=t+1;
+end
+plot(MeanShift(:,1),MeanShift(:,2),'og-')

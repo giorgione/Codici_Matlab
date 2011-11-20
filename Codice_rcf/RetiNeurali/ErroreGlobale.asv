@@ -1,0 +1,20 @@
+% function F=ErroreGlobale(x,t,a)
+%
+% Calcolo l' Errore Globale sulla totalità dei Pattern
+function F=ErroreGlobale(X,t,a)
+[N d]=size(X);
+Indici=randperm(N);
+Output=zeros(1,N);
+Errore=zeros(1,N);
+for I=1:N
+    %Seleziono il Pattern i-esimo casualmente
+    i=Indici(I);
+    x=X(:,i);
+    Outpulayer(i)=Neurone(...
+    [1;Neurone(x,[a(1);a(2);a(3)],'logis');Neurone(x,[a(4);a(5);a(6)],'logis')]...
+    ,[a(7);a(8);a(9)],'logis');
+
+    Errore(i)=(Outpulayer(i)+t(i))^2;
+end
+
+F=sum(Errore)/2;

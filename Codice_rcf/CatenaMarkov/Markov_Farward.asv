@@ -1,0 +1,119 @@
+%Calcolo della Probabilità della Sequenza di Stati Visibili
+%     t
+% P( V ) attraverso :
+%
+% 1) l' algoritmo HMM Forward 
+%
+% 2) l' algoritmo HMM Backward
+%
+%Considero la Catena di Markov costituita da:
+%
+% - 4 STATI NASCOTI:  W0, W1, W2, W3 
+%
+% - 1 STATO VISIBILE Iniziale assumibile  Vo 
+%
+% - 4 STATI VISIBILI: V1,V2, V3, V4
+%
+% Matrice delle TRANSIZIONI DI STATO: A(i,j)= P( Wj(t)| Wi(t-1))
+clc;clear;close all
+% carattere di newline
+s=sprintf('\n');
+
+A=[   1   0   0    0;
+     .2  .3  .1   .4;
+     .2  .5  .2   .1;
+     .8  .1  .0   .1];
+%
+
+
+% Matrice degli STATI VISIBILI: B(i,j)= P( Vj(t)| Wi(t) ) probabilità che
+% lo stato NASCOSTO Wi assuma stato VISIBILE Vj
+%  V0 V1 V2 V3 V4
+B=[ 1  0  0  0  0 ;  %W0  
+    0 .3 .4 .1 .2 ;  %W1
+    0 .1 .1 .7 .1 ;  %W2
+    0 .5 .2 .1 .2 ]; %W3 
+display('Stati NASCOSTI W di HMM:')
+disp(A)
+disp(s)
+
+display('Stati Visibili V di HMM:')
+disp(B)
+disp(s)
+
+% Definisco V la Sequenza di Stati Visibili ->5=T
+%                      T
+% Voglio calcolare p( V )
+V=[3 1 3 2 0];
+display('Sequenza di Stati Visibili osservati Vt:')
+disp(V)
+disp(s)
+
+display('Stati Inziale NASCOSTO al tempo t=0: W1')
+disp(s)
+%Le Matrici sono indicizzate da 0
+
+%Suppongo che lo stato iniziale sia W1 al tempo To=0
+StatoIniziale=1;
+P_StatoIniziale=1;
+T=5;
+N=4;
+
+
+%Alfa: Matrice delle osservazioni parziali
+%
+%Alfa(t,j) -> Probabilità che il modello di Markov si trovi nello STATO
+%NASCOSTO Wj al tempo T avendo osservato gli STATI VISIBILI V(1),V(2)...V(T)
+Alfa=zeros(T,N);
+
+% Inizializza la Matrice delle osservazioni parziali
+% Lo stato W0 non va considerato perkè rappresenta lo stato finale
+
+%Definisco le probabilità degli Stati Iniziali considerando il fatto ke lo
+%stato iniziale sia W1 P(W=i)
+P=[0 1 0 0];
+for j=1:N
+    %Probabilità di osservare V(1) al tempo t=1 dato lo STATO WJ
+    k=V(1)+1;
+    Alfa(1,j)=P(j);%*B(j,k);  
+end
+
+display('Alfa Iniziale:')
+disp(Alfa)
+disp(s)
+
+for t=1:T-1
+   display(['Alfa(t=' num2str(t) '):' ])
+   disp(Alfa)
+   disp(s)    
+    
+   for j=1:N
+        S=0;
+        for i=1:N
+            S=S+Alfa(t,i)*A(i,j);
+            display([ 'Alfa(' num2str(t) ',' num2str(i-1) ')*A( ' num2str(i-1) ',' num2str(j) ...
+                ') ->' num2str(Alfa(t,i)) ' * ' num2str(A(i,j)) '+'] )
+        end
+        display([ '= ' num2str(S) '-> Probabilità che si Verifichi lo STATO NASCOSTO W' num2str(j) ]);
+        %gli indici in V vanno da 0 a 4 per questo ce l' incremento di 1
+        %per selezionare correttamente dalla Matrice B
+        k=V(t+1)+1;
+        Alfa(t+1,j)=S*B(j,k);
+        display([ 'Alfa(' num2str(t+1) ',' num2str(j) ')= S*B( ' num2str(j) ',' num2str(k-1) ')  =' num2str(S) ' * ' num2str(B(j,k)) ' = ' num2str(Alfa(t+1,j)) '+'] )
+        disp(s)
+   end
+   
+end
+display(['Alfa(t=' num2str(t) '):' ])
+disp(Alfa)
+disp(s) 
+
+p=0;
+for i=1:N
+    p=p+Alfa(T,i);
+end
+
+%Visualizzo la Matrice Alfa come fatto sul libro..
+Alfa.'
+
+

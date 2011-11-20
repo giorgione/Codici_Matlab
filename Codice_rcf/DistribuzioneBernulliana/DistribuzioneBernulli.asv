@@ -1,0 +1,49 @@
+%function F=DistribuzioneBernulli(x,n,p)
+%Calcola la Distribuzione di Bernulli per la variabile aleatoria X
+%
+%   P(x,n,p)= probabilità che la Variabile Aleatoria X
+%             verifichi x successi su n prove con p 
+%             probabilità di sucesso (sempre uguale)
+%
+% Tipologia di Problema: voglio calcolare la probabilità di ottenere X
+% SUCCESSI su n prove (otterrò n-X INSUCCESSI)
+%
+% PROCESSO DI BERNOULLI:
+%
+% 1) 2 possibili Risultati mutuamente esclusivi: SUCCESSO - INSUCCESSO
+%
+% 2) p indica la probabilità di sucesso per ogni prova: tale valore è
+%    costante per ogni prova
+%
+% 3) Tutti gli Esperimenti - prove sono Indipendenti.
+%
+% 4) La Variabile Aleatoria X che conta il numero di SUCCESSI su n prove si
+%    definisce VARIABILE ALEATORIA BINOMIALE di PARAMETRI p ed n
+%
+% DISTRIBUZIONE DI PROBABILITA BINOMIALE o DI BERNULLI:
+%
+%                 ( n )  x       n-x
+% f(x)= P(X=x) =  (   ) p   (1-p)               <-->    P(x,n,p)
+%                 ( x )
+%
+% essa indica:
+%             probabilità che la Variabile Aleatoria X verifichi x successi 
+%             su n prove con p probabilità di sucesso (sempre uguale)
+%
+% proprietà:
+%
+% 1) m = E[ X ] = n*p    --> Valore MEDIO
+% 
+%                2
+% 2) v = E[ (X-m) ] =  n*p(1-p)    --> Varianza 
+function F=DistribuzioneBernulli(x,n,p)
+
+F=factorial(n)./(factorial(x).*factorial(n-x));
+F=F.*(p.^x).*(1-p).^(n-x);
+
+% N=length(x);
+% for i=1:N
+%     Num=x(i)+1:n;
+%     Num=prod(Num)/factorial(n-x(i));
+%     F(i)=Num.*(p.^x(i)).*(1-p).^(n-x(i));
+% end

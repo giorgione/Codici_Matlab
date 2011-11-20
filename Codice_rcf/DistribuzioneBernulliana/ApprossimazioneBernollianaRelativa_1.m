@@ -1,0 +1,12 @@
+P=0.2;
+
+syms x k n real
+
+nk=sym('n!')/(sym('x!')*sym('(n-x)!'))
+
+P=nk* (P^x) *((1-P)^(n-x))
+P=subs(P,n,100)
+
+int(P,x,1,10)
+
+%limit(P,k,inf)

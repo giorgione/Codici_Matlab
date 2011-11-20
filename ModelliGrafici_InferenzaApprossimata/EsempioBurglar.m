@@ -1,0 +1,155 @@
+%Esercizio Distribuzioni Predittive a Priori
+%
+% Considero il Burglar Example
+  clc;clear;close all;
+%La Joint Probability del Modello X={a,b,c,e,r}
+%
+%    P(X)=P(e)P(b)P(r|e)P(a|e,b)P(c|a)
+%
+% Voglio calcolare la DISTRIBUZIONE PREDITTIVA A PRIORI
+%       ___
+% P(c)= \    P(e)P(b)P(r|e)P(a|e,b)P(c|a)
+%       /__
+%         X\c
+%       ___
+%=      \    P(e)P(b)P(r|e)P(a|e,b)P(c|a)
+%       /__
+%         {a,b,c,e,r}
+%Ho tutte le distribuzioni necessarie
+% Prior di EARTHQUAKE
+%     0     1
+Pe=[0.998 0.002]; 
+% Prior di BURGLAR
+%     0     1
+Pb=[0.999 0.001];
+
+%Probabilità di un RADIO REPORT di Earthquake | EARTHQUAKE
+%P(r|e)=F(e,r) -->Matrice 2x2
+%
+%     %r=0  r=1
+Pr_e=[.999 .001 ; %e=0  --> Distribuzione P(r|e=0)
+      .008 .992 ] %e=1  --> Distribuzione P(r|e=1)
+  
+%Probabilità di un ALARM | EARTHQUAKE, BURGLARY
+%P(a|e,b)=F(e,b,a) -->Matrice 2x2x2
+%
+Pa=zeros(2,2,2)
+%a=1
+s2i=@(x)x+1;
+%     e        b       a=0 
+Pa_eb(s2i(0),s2i(0),s2i(0))=0.1;
+Pa_eb(s2i(1),s2i(0),s2i(0))=0.29;
+Pa_eb(s2i(0),s2i(1),s2i(0))=0.94;
+Pa_eb(s2i(1),s2i(1),s2i(0))=0.98;
+%a=1
+Pa_eb(s2i(0),s2i(0),s2i(1))=0.9;
+Pa_eb(s2i(1),s2i(0),s2i(1))=0.71;
+Pa_eb(s2i(0),s2i(1),s2i(1))=0.06;
+Pa_eb(s2i(1),s2i(1),s2i(1))=0.02;
+
+%%Probabilità di un CALL | ALARM
+%P(c|a)=F(a,c)
+%     c=0  c=1
+Pc_a=[.05  .95;  %a=0
+      .9   .1]   %a=1
+
+
+%Calcolo P(r) CONDIZIONANDO SU e , sfruttando il fatto che e dipende solo da
+%r per cui tutti gli altri termini vanno ad uno
+%       ___
+%=      \    P(e)P(r|e)=P(e,r)
+%       /__
+%          e
+Pr1=zeros(1,2);
+for r=1:2 
+    for e=1:2
+        Pr1(r)=Pr1(r)+Pr_e(e,r)*Pe(e)
+    end
+end
+disp(['Calcolo Semplificato P(r)=[ ' num2str(Pr1(1)) ',' num2str(Pr1(2)) ' ]' ]);
+sum(Pr1)
+%Calcolo P(r)
+%       ___
+%=      \    P(e)P(b)P(r|e)P(a|e,b)P(c|a)
+%       /__
+%         {a,b,c,e}
+%
+%                    Numero Variabili
+% Costo= Numero Stati 
+Pr=zeros(1,2);
+for r=0:1
+    for a=0:1
+        for b=0:1
+            for c=0:1
+                for e=0:1
+                    Pr(s2i(r))=Pr(s2i(r))+ Pe(s2i(e))*Pb(s2i(b))*...
+                    Pr_e(s2i(e),s2i(r))*Pa_eb(s2i(e),s2i(b),s2i(a))...
+                    *Pc_a(s2i(a),s2i(c));
+                end
+            end
+        end
+    end
+end
+disp(['Calcolo Su Tutta la Joint Dist. P(r)=[ ' num2str(Pr(1)) ',' num2str(Pr(2)) ' ]' ]);
+%Calcolo P(c)
+%       ___
+%=      \    P(e)P(b)P(r|e)P(a|e,b)P(c|a)
+%       /__
+%         {a,b,e,r}
+Pc=zeros(1,2);
+for c=0:1
+    for a=0:1
+        for b=0:1
+            for r=0:1
+                for e=0:1
+                    Pc(s2i(c))=Pc(s2i(c))+ Pe(s2i(e))*Pb(s2i(b))*...
+                    Pr_e(s2i(e),s2i(r))*Pa_eb(s2i(e),s2i(b),s2i(a))...
+                    *Pc_a(s2i(a),s2i(c));
+                end
+            end
+        end
+    end
+end
+disp(['Calcolo Su Tutta la Joint Dist. P(c)=[ ' num2str(Pc(1)) ',' num2str(Pc(2)) ' ]' ]);
+
+N=1000;
+%Calcolo P(c) attraverso Inferenza Approssimata basata su MC Methods 
+%(Ancestral Sampling) + Campionamento Inverso
+
+%Calcolo le Distribuzioni Cumulative per applicare il Campionamento inv
+%comincio a campionare  le Root del Modello P(e) e P(b) 
+e_N=CampionamentoInverso(Pe,N);
+b_N=CampionamentoInverso(Pb,N);
+
+
+for i=1:N
+    %campiono da P(a|e,b)
+    % Fissando a,b ho un nuova distribuzione P(e|a=x,b=y) dalla quale posso
+    % andare a campionare    
+    r_N(i)=CampionamentoInverso(Pr_e(e_N(i)+1,:),1);
+    %campiono da P(a|e,b)
+    % Fissando a,b ho un nuova distribuzione P(e|a=x,b=y) dalla quale posso
+    % andare a campionare    
+    a_N(i)=CampionamentoInverso(Pa_eb(e_N(i)+1,b_N(i)+1,:),1);
+    %campiono da P(c|a)
+    % Fissando a,b ho un nuova distribuzione P(c|a=x,b=y) dalla quale posso
+    % andare a campionare
+    c_N(i)=CampionamentoInverso(Pc_a(a_N(i)+1,:),1);
+end
+
+figure(1)
+plot(1:N,c_N,'or');
+title('Campioni Distr. Predittiva generati via ANCESTRAL-SAMPLING')
+figure(2)
+% Show the histogram of the simulated draws
+counts = hist( c_N , [0 1] );
+bar( [0 1] , counts , 'k' );hold on;
+bar( [0 1] , Pc*N , 'r' );hold on;
+
+xlim( [ -1 2 ] );
+xlabel( 'Status' );
+ylabel( 'Frequency' );
+title( 'Distributione Predittiva Calcolata tramite Inferenza Esatta');
+
+
+

@@ -1,0 +1,63 @@
+% Dimostro che la stima della Media a Massima Verosimiglianza è una :
+%
+% - stima Asintoticamente corretta
+%
+% - stima consistente
+
+
+% Definisco una Distribuzione Gaussiana di N(media,1) : essa rappresenta la
+% distribuzione di cui voglio andare a stimare i parametri
+
+
+clear;clc;close all;
+syms x real;
+X=x;
+M=5;
+S=3^2;
+
+P=GaussianaMulti(S,M,X);
+
+%Disegno il punto medio
+plot(M,0,'or','MarkerFaceColor','r');hold on
+
+%Disegno la Distribuzione
+ezplot(P,[-5,15],gcf);
+
+for I=1:10
+
+    %Simulo l' estrazione di N campioni casuali dalla distribuzione, estraggo 
+    % N valori nell' intervallo [-4 14]
+    b=14;
+    a=-4;
+    N=50*I;
+
+    X=a+(b-a)*rand(1,N);
+    for i=1:N
+        F(i)=GaussianaMulti(S,M,X(i));
+    end
+
+    %Disegno i punto estratti
+    %l=plot(X,F,'og','MarkerFaceColor','g');
+
+    %Applico la Stima a MassimaVerosimiglianza di Media e Varianza
+    Media(I)=mean(X);
+    %Calcolo l' errore- bias
+    Errore_M(I)=abs(Media(I)-M);
+
+    Varianza(I)=std(X).^2;
+    Errore_V(I)=abs(Varianza(I)-S);
+    %pause;
+
+end
+
+figure;
+plot(50:50:500,Media);
+legend('Errore nella Stima della Media')
+xlabel('n')
+ylabel('Media(n)')
+figure;
+
+plot(50:50:500,Varianza);
+legend('Errore nella Stima della Varianza')
+xlabel('n')
+ylabel('Varianza(n)')

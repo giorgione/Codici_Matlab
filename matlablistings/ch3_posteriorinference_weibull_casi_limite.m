@@ -1,0 +1,167 @@
+%% Chapter 3. Use Metropolis-Hastings procedure to estimate parameters in Weibull example 
+
+%% Load data
+clear all;
+y=2;
+
+%% Model parameters
+lambda_A = 1; % hyperparameter in exponential prior on A 
+lambda_B = 1; % hyperparameter in exponential prior on B 
+
+%% Initialize the Metropolis-Hastings sampler
+T      = 1000; % Maximum number of iterations
+burnin = 50; % burnin period
+thin   = 5;  % thinning parameter
+
+A   = 1;   % Some starting value for A in our sampler
+B   = 1; % Some starting value for A in our sampler
+
+tau_A = 5; % Set precision of Gamma proposal density for A
+tau_B = 5; % Set precision of Gamma proposal density for B
+
+state  = zeros( 2 , T ); % Storage space for our samples
+accept = zeros( 2 , T ); % Storage space for accept/reject decisions
+
+nreps = 100; % Number of repeated sampling steps for calculating posterior predictive
+seed=1; rand( 'state' , seed ); randn('state',seed ); % set the random seed
+
+%% Visualization
+ymin = 0;
+ymax = 10;
+nbins_y = 50;
+nbins_ypred = 50;
+
+%% Start sampling
+for t=1:T  
+    % ---------------------------------------------
+    %  Sample new A value
+    % ---------------------------------------------
+    
+    % Propose a new value from a Gamma proposal density
+    old_A = A;
+    new_A = gamrnd( old_A * tau_A , 1 / tau_A );       
+     
+    %Calcolo il rapporto 
+    %     t-1    *          *      t
+    % q( a    | a  ) /  q( a    | a  ) 
+    p_newA_given_oldA = gampdf( new_A  , old_A*tau_A  , 1/tau_A );
+    p_oldA_given_newA = gampdf( old_A  , new_A*tau_A  , 1/tau_A ); 
+    proposal_ratio = p_oldA_given_newA / p_newA_given_oldA;
+    
+    %Calcolo il rapporto 
+    %     *      t-1          t-1    t-1
+    % p( a    , b    ) /  p( a    | b    ) 
+    %
+    % rapporto delle Likelihood * rapporto dei prior
+    ratios2 = wblpdf( y, new_A, B) ./ wblpdf( y, old_A, B);
+    likelihood_ratio = prod( ratios2 );
+    
+    %Calcolo il Rapporto dei prodotti delle prior
+    %nb:
+    % è indipendente dai campioni y
+    % la componente p(b) scompare poichè appare sia al nume che al denum
+    prior_ratio = exppdf( new_A , lambda_A ) / exppdf( old_A , lambda_A );
+    
+    posterior=likelihood_ratio * prior_ratio ;
+           
+    % Accept or reject dalla POSTERIOR
+    alpha = min( [ 1 proposal_ratio * posterior ] );   
+    u = rand; % Draw a uniform deviate from [ 0 1 ]  
+    if u < alpha % Do we accept this proposal?
+        A = new_A; % If so, proposal becomes new state for param A
+        accept( 1,t ) = 1;
+    end
+    
+    % ---------------------------------------------
+    %  Sample new B value
+    % ---------------------------------------------
+    
+    % Propose a new value from a Gamma proposal density
+    old_B = B;
+    new_B = gamrnd( old_B * tau_B , 1 / tau_B );       
+    
+    %Calcolo il rapporto 
+    %     t-1    *          *      t
+    % q( a    | a  ) /  q( a    | a  )    
+    p_newB_given_oldB = gampdf( new_B  , old_B*tau_B  , 1/tau_B );
+    p_oldB_given_newB = gampdf( old_B  , new_B*tau_B  , 1/tau_B ); 
+    proposal_ratio = p_oldB_given_newB / p_newB_given_oldB;
+    
+    %Calcolo il Rapporto dei prodotti delle prior
+    %nb:
+    % è indipendente dai campioni y
+    % la componente p(a) scompare poichè appare sia al nume che al denum
+    prior_ratio = exppdf( new_B , lambda_B ) / exppdf( old_B , lambda_B );
+    %Calcolo il rapporto 
+    %     *      t-1          t-1    t-1
+    % p( a    , b    ) /  p( a    | b    ) 
+    ratios2 = wblpdf( y, A, new_B) ./ wblpdf( y, A, old_B);
+    likelihood_ratio = prod( ratios2 );
+    posterior=likelihood_ratio* prior_ratio;
+           
+    % Accept or reject?
+    alpha = min( [ 1 proposal_ratio * posterior ] );   
+    u = rand; % Draw a uniform deviate from [ 0 1 ]  
+    if u < alpha % Do we accept this proposal?
+        B = new_B; % If so, proposal becomes new state for param B
+        accept( 2,t ) = 1;
+    end
+    
+    % Copy current state into storage
+    state( 1 , t ) = A;
+    state( 2 , t ) = B;
+end
+
+%% Which samples do we take for further analysis?
+samples = state( : , burnin:thin:T );
+
+%% Acceptance ratio?
+fprintf( 'Acceptance ratio for A = %3.3f\n' , mean( accept(1,:)));
+fprintf( 'Acceptance ratio for B = %3.3f\n' , mean( accept(2,:)));
+
+%% Calculate posterior predictive using the samples of A and B
+posterior_pred_samples = [];
+for reps = 1:nreps
+   posterior_pred_samples = [ posterior_pred_samples wblrnd( samples(1,:) , samples(2,:) ) ];
+end
+
+%% Report means
+fprintf( 'Mean A: %3.3f\n' , mean( samples(1,:)));
+fprintf( 'Mean B: %3.3f\n' , mean( samples(2,:)));
+
+%% Display state across all iterations
+figure( 1 ); clf;
+plot( 1:T , state );
+xlabel( 't' ); ylabel( 'Estimate' );
+legend( { 'A' , 'B' } );
+
+%% Display scatter plot of the samples we have taken
+figure( 2 ); clf;
+scatterhist( samples(1,:) , samples(2,:) ); % if you have the statistics toolbox
+%plot( samples(1,:) , samples(2,:) , 'kx' ); % use this otherwise
+xlabel( 'A' );
+ylabel( 'B' );
+
+%% Display histogram of the data and overlay posterior predictive
+figure( 3 ); clf;
+ybins = linspace( ymin , ymax , nbins_y );
+counts = hist( y , ybins );
+bar( ybins , counts/sum(counts) , 'k' ); hold on;
+
+%Disegno la distribuzione predetta
+ybinspred = linspace( ymin , ymax , nbins_ypred );
+counts = hist( posterior_pred_samples , ybinspred );
+plot( ybinspred , counts/sum(counts) , 'r-' , 'LineWidth' , 2); hold on;
+
+xlim( [ ymin ymax*0.9 ] );
+xlabel( 'y' ); ylabel( 'p(y)' );
+legend( { 'Data' , 'Model' } );
+
+%Disegno la Distibuzione originale
+x=linspace( ymin , ymax , 100 );
+plot(x , wblpdf(x,3,2) , 'g-' , 'LineWidth' , 2); hold on;
+
+%Stimo a Massima Verosimiglianza attraverso la funzione built in matlab
+Ml_params=wblfit(y)
+fprintf( 'Stima ML di A: %3.3f\n' , Ml_params(1));
+fprintf( 'Stima ML di B: %3.3f\n' , Ml_params(2));

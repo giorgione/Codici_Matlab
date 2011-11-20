@@ -1,0 +1,44 @@
+%Simulazione Algoritmo Knn con 
+% Training Set :insieme dei campioni di addestramento di 16 elementi
+% Test Set : insieme dei campioni test di 16 elementi
+clc;clear;close all
+%numero Campioni
+n=16;
+kn=sqrt(n);
+
+%Estraggo i campioni da una distribuzione Normale N(0,1)
+TrainingSet=rand(1,n);
+TrainingSet=sort(TrainingSet);
+plot(TrainingSet,zeros(1,n),'ob','MarkerSize',5,'MarkerFaceColor','b');
+hold on;
+
+%Test Set
+TestSet=rand(1,n);
+TestSet=sort(TestSet);
+plot(TestSet,zeros(1,n),'or','MarkerSize',5,'MarkerFaceColor','r');
+legend('Training Set','Test Set')
+%Per ogni x in TestSet calcolo la distanza dai vettori del traing Set
+Distanza=zeros(n);
+for i=1:n
+    for j=1:n
+        Distanza(i,j)=abs(TrainingSet(j)-TestSet(i));
+    end
+end
+%Ordina le righe di Distanza in modo crescente: I contiene gli indici
+[D,I]=sort(Distanza,2);
+%Per ogni x in TestSet calcolo il Volume contente k-vicini 
+V=zeros(1,n);
+for i=1:n
+    V(i)=D(i,kn);
+    DisegnaCirconferenza([TestSet(i);0],V(i));
+    pause;
+end 
+
+P=zeros(1,n);
+P=kn./(n.*V)
+plot(TestSet,P)
+Media=0;
+
+fun=@(x) exp( (-.5)*( ( (x-Media)/Var ).^2 ))./(sqrt(2*pi)*Var);
+plot(TestSet,fun(TestSet))
+    

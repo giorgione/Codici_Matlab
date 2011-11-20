@@ -1,0 +1,26 @@
+%Addestriamo una rete 1-20-1 (un input, 20 neuroni nascosti, un output) ad
+%approssimare una funzione seno con rumore.
+
+% generiamo il training set
+p=[-1:0.05:1];
+
+t=sin(2*pi*p) + 0.1*randn(size(p)); % aggiungiamo rumore al seno
+% (sommando numeri casuali con distribuzione normale)
+% generiamo il validation set; gli input variano in [-1 1] come nel training
+% set, ma sono traslati leggermente. Inoltre aggiungiamo un rumore
+% diverso alla funzione seno.
+% Il validation set è contenuto in una struttura che comprende sia gli
+% ingressi che le uscite desiderate.
+val.p=[-0.975:0.05:0.975];
+val.t=sin(2*pi*val.p) + 0.1*randn(size(val.p));
+net=newff([-1 1],[20 1],{'tansig','purelin'},'traingdx');
+net.trainParam.show=25;
+net.trainParam.epochs=300;
+net=init(net);
+[net,tr]=train(net,p,t,[],[],val);
+
+% simuliamo la rete
+y=sim(net,p);
+% grafichiamo la funzione da approssimare, il training set e
+% la risposta della rete
+plot(p,sin(2*pi*p),':',p,t,'+',p,y);

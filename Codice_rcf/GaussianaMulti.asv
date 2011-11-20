@@ -1,0 +1,4 @@
+function F=GaussianaMulti(Sigma,M,X)
+SigmaInv=inv(Sigma);
+d=length(X);
+F=(1/*exp(-1/2*((X-M).'*SigmaInv*(X-M)))/(((2*pi)^(d/2))*det(Sigma)^.5));

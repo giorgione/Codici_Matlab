@@ -1,0 +1,39 @@
+% DisegnaGaussiana3_sc.m
+% 1) Costruisco una Distribuzione Gaussiana Bivariata a variabili
+%    correlate.
+%
+% 2) Disegno la Distribuzione Gaussiana Bivariata
+%
+% 3) Calcolo gli Auotovalori ed Autovalori della Matrice di Varianza
+%    Covarianza e verifico come essi rappresentino rispettivamente la
+%    lunghezza e direzione degli assi delle curve di livello della Guassiana
+%
+clc;clear;close all
+
+syms Ux Uy Ox Oy Oxy x y ;
+
+p=Oxy/(Ox*Oy);
+
+M=[Ux;Uy];
+
+
+
+%Matrice di Varianza Covarianza
+S=[Ox^2      p*(Ox*Oy); 
+   p*(Ox*Oy)     Oy^2 ];
+
+d=2;
+
+F=GaussianaMulti(S,M,X(:,i))
+
+
+
+
+%Calcolo gli Autovalori ed Autovalori della matrice Sigma
+[X,lamda]=eig(S);
+% hold on;
+% a1=sqrt(lamda(1,1));
+% a2=sqrt(lamda(2,2));
+% 
+% line([X(1,1)+Ux; -X(1,1)+Ux],[X(2,1)+Uy;-X(2,1)+Uy])
+% line([X(1,2)+Ux; -X(1,2)+Ux],[X(2,2)+Uy;-X(2,2)+Uy])

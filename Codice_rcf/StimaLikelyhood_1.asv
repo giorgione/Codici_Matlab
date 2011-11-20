@@ -1,0 +1,77 @@
+% Dimostro che la stima a Massima Verosimiglianza è una :
+%
+% - stima corretta
+%
+% - stima consistente
+%
+% Procedimento:
+%
+% 1) Definisco una Distribuzione Gaussiana N(media=5,1) : essa rappresenta la
+% distribuzione di cui voglio andare a stimare i parametri
+%
+%    FOR i=1:10  
+%
+%       2) Estraggo Nc campioni dalla Distribuzione.
+%
+%       3) Stimo la Media attraverso la tecnica a Massima Verosimiglianza:
+%          Media(i)
+%    END
+% 
+% 4) Calcolo il Valore Atteso e la Varianza della Variabile Aleatoria Media   
+%
+% 5) Disegno la Distribuzione della Variabile Aleatoria stimata e verifico
+%    che essa è: 
+%                      - una Stima Non Polarizzata
+% 
+%                      -
+clear;clc;close all;
+
+
+sigma=1;
+media = 5; 
+
+Media=zeros(1,10);
+
+%Fisso il numero di Campioni per effettuare la Stima
+Nc=50;
+Nstime=10;
+for i=1:Nstime
+            
+        %Definisco l' intervallo in cui vado ad estrarre i Campioni
+        a=media-3*sqrt(sigma);
+        b=media+3*sqrt(sigma);
+        
+        %Estraggo i Campioni
+        X=a+(b-a)*rand(1,Nc);
+        
+        %Applico la Stima a MassimaVerosimiglianza di media 
+        Media(i)=mean(X);
+        
+        %Calcolo l' errore- bias
+        Errore_M(i)=Media(i)-media;
+
+end
+
+figure;
+plot(1:Nstime,abs(Errore_M));
+legend('Errore nella Stima della Media')
+xlabel('Media')
+ylabel('Errore di Stima')
+
+
+%Calcolo il Valore Atteso della Variabile Aleatoria Stimata Media
+m=mean(Media);
+v=var(Media);
+
+syms x;
+F_stimata=GaussianaMulti(v,m,x);
+ezplot(F_stimata)
+hold on;
+
+%Calcolo il Valore Atteso della Variabile Aleatoria Errore di Stima della
+%Media
+m=mean(Errore_M);
+v=var(Errore_M);
+F=GaussianaMulti(sigma,media,x);
+ezplot(F_originale)
+

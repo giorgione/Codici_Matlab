@@ -1,0 +1,10 @@
+
+function P=Parzen_Window_Simbolico(X_tr,hn,Vn)
+syms X real;
+P=0;
+n=length(X_tr);
+for i=1:n
+    P=P+finestra_gaussiana((X-X_tr(i))/hn)/Vn;
+end
+P=P/n;
+

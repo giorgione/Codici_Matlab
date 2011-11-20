@@ -1,0 +1,142 @@
+% StimaLikelyhood_2.m
+%
+% Dimostro che la stima a Massima Verosimiglianza di MEDIA e VARIANZA sono :
+%
+% - STIMA NON POLARIZZATA
+%
+% Procedimento:
+%
+% 1) Definisco una Distribuzione Gaussiana N(media=5,1) : essa rappresenta la
+% distribuzione di cui voglio andare a stimare i parametri
+%
+%    FOR i=1:10  
+%
+%       2) Estraggo Nc=50 campioni dalla Distribuzione.
+%
+%       3) Stimo la Media attraverso la tecnica a Massima Verosimiglianza:
+%          Media(i)
+%    END
+% 
+% 4) Calcolo il Valore Atteso e la Varianza della Variabile Aleatoria Media  
+%
+% 5) Calcolo il Valore Atteso e la Varianza della Variabile Aleatoria 
+%    Errore di Stima della Media   
+%
+% 6) Disegno la Distribuzione della Variabile Aleatoria stimata e verifico
+%    che essa è: 
+%                      - una Stima Non Polarizzata
+% 
+%                      
+clear;clc;close all;
+
+
+sigma=1;
+media = 5; 
+
+Media=zeros(1,10);
+Var=zeros(1,10);
+
+%Fisso il numero di Campioni per effettuare la Stima
+Nc=50;
+Nstime=10;
+for i=1:Nstime
+            
+        %Estraggo i Campioni
+        X=media+randn(1,Nc);
+        
+        %Applico la Stima a MassimaVerosimiglianza di media 
+        Media(i)=mean(X);        
+        %Calcolo l' errore- bias
+        Errore_M(i)=Media(i)-media;
+        
+        %Applico la Stima a MassimaVerosimiglianza di Varianza utilizzando
+        %la formula Polarizzata
+        Varianza(i)=std(X,1);        
+        %Calcolo l' errore- bias
+        Errore_V(i)=Varianza(i).^2-sigma;
+
+end
+
+figure;
+plot(1:Nstime,abs(Errore_M));
+legend('Errore nella Stima della Media')
+xlabel('Stima i-esima')
+ylabel('Errore di Stima')
+
+
+%Calcolo il Valore Atteso della Variabile Aleatoria Stimata Media
+m=mean(Media);
+v=std(Media,1);
+
+syms x;
+F_stimata=GaussianaMulti(v^2,m,x);
+figure;
+ezplot(F_stimata)
+title('P(Media)-> Variabile Aleatoria Stimata: Media')
+hold on;
+plot(m,0,'or')
+xlabel('Stima della Media')
+ylabel('P(Stima della Media)')
+legend(['Media= ' num2str(m)])
+
+
+%Calcolo il Valore Atteso della Variabile Aleatoria Errore di Stima della
+%Media e verifico che la Stima della Media è non polarizzata:
+%
+%      E{Errore_M} = 0   -> Media Nulla
+%
+%      V{Errore_M} = molto piccolo  -> Varianza molto piccola
+m=mean(Errore_M);
+v=std(Errore_M,1);
+F_errore=GaussianaMulti(v^2,m,x);
+figure;
+ezplot(F_errore)
+title('P(Errore Media) -> Errore di Stima della Media');
+hold on;
+plot(m,0,'or')
+xlabel('Errore di Stima')
+ylabel('P(Errore di Stima)')
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Ragionamento sulla Varianza
+figure;
+plot(1:Nstime,abs(Errore_V));
+legend('Errore nella Stima della Varianza')
+xlabel('Stima i-esima')
+ylabel('Errore di Stima ')
+
+
+%Calcolo il Valore Atteso della Variabile Aleatoria Stimata Varianza
+m=mean(Varianza);
+v=std(Varianza,1);
+
+syms x;
+F_stimata=GaussianaMulti(v^2,m,x);
+figure;
+ezplot(F_stimata)
+title('P(Varianza) -> Variabile Aleatoria Stimata: Varianza ')
+hold on;
+plot(m,0,'or')
+xlabel('Stima della Varianza')
+ylabel('P(Stima della Varianza)')
+legend(['Varianza Stimata= ' num2str(m)])
+
+%Calcolo il Valore Atteso della Variabile Aleatoria Errore di Stima della
+%Varianza e verifico che la Stima della Media è non polarizzata:
+%
+%      E{Errore_V} = 0   -> Media Nulla
+%
+%      V{Errore_V} = molto piccolo  -> Varianza molto piccola
+m=mean(Errore_V);
+v=std(Errore_V,1);
+F_errore=GaussianaMulti(v^2,m,x);
+figure;
+ezplot(F_errore)
+title('P(Errore Varianza) -> Errore di Stima della Varianza');
+hold on;
+plot(m,0,'or')
+xlabel('Errore di Stima della Varianza')
+ylabel('P(Errore di Stima della Varianza)')

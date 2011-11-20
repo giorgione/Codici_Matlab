@@ -1,0 +1,62 @@
+%function [J DJ]=ErroreQuadratico(a,y)
+% Calcola la funzione ErroreQuadratico J(a,y) ed il suo gradiente DJ(a,y) 
+%    
+%           -----        t     2
+% J(a) =    \      ( (a) * y )     -> a=[a1 a2]
+%           /                         y=[x y]
+%           -----
+%           y appartente a Y --> Insieme dei Vettori missclassified
+%
+% parametri
+%
+% -a :vettore dei pesi (Spazio in cui vado a disegnare la funzione)
+%
+% -y :Vettore dei Pattern (Training Set) d x n
+function [J DJ]=ErroreQuadratico(a,y)
+%Valuta i vettori missclassified per ogni punto dello spazio dei Pesi
+Jm=a.'*y;
+[m,n]=size(Jm);
+[M,N]=size(y);
+%Memorizzo in Ymiss gli indici dei Vettori y missclassified
+Ymiss=zeros(m,n);
+for I=1:m
+    for J=1:n
+        %Errore di classificazione sul pattern X(J):
+        if Jm(I,J)<0
+            Ymiss(I,J)=J;
+        end
+    end
+end  
+
+%Calcola la funzione ErroreQuadratico
+for i=1:m
+    %Estrai i vettori missclassified per ogni punto a(a1,a2)
+    [R C Val]=find(Ymiss(i,:));
+    if isempty(Val)
+        J(i)=0;
+        DJ(:,i)=zeros(M,1);
+    else
+    %Considero i pattern Missclassified    
+    ym=y(:,Val);
+    [d nmis]=size(ym);
+    J(i)=(a(:,i).'*ym)*(a(:,i).'*ym).';
+    
+    % 
+    %Calcolo il Gradiente di F(a):
+    %   t     2
+    % (a  * y)
+    %
+    % J(a):
+    %     t         
+    % 2*(a  * y) * y 
+    Coef=2*a(:,i).'*ym;
+    nc=length(Coef);
+    S=0;
+    for I=1:nc
+        S=S+Coef(I)*ym(:,I);
+    end
+    DJ(:,i)=S;
+
+    
+end
+end

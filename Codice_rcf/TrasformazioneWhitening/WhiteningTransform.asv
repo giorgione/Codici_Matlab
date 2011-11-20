@@ -1,0 +1,23 @@
+%function [M,S,Aw]=WhiteningTransform(M,Sigma)
+% Effettua la Trasformata Whitening( reststituisce una nuova Gaussiana con Sigma=I ) 
+% per la distribuzione Gaussiana Multivariata avente parametri M ,Sigma:
+%
+% - Sigma -> Matrice di Varianza-Covarianza
+%
+% - Media -> Vettore delle Medie
+%
+% parametri out:
+%
+% - M -> Vettore delle medie della nuova distribuzione Gaussiana
+%
+% - S -> Matrice di Varianza-Covarianza della nuova distribuzione Gaussiana
+%        Matrice Identita
+%
+% - Aw -> Matrice che ha generato la trasformazione whitening
+function [M,S,Aw]=WhiteningTransform(Media,Sigma)
+[X,lamda]=eig(Sigma);
+[Q,R]=qr(X);
+Aw=*(lamda^(-1/2));
+M=Aw.'*Media;
+d=length(M);
+S=eye(d);

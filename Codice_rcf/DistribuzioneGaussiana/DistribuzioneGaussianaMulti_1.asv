@@ -1,0 +1,31 @@
+% DistribuzioneGaussianaMulti_sc.m
+% 1) Costruisco una Distribuzione Gaussiana Monovariata Normale
+%
+% 2) Disegno la Distribuzione Gaussiana Normale
+
+clc;clear;close all
+
+Ux=0;
+Ox=1;
+
+M=[Ux];
+
+x=-8:.125:8;
+
+%Matrice di Varianza Covarianza
+S=[Ox^2];
+
+[m,n]=size(x);
+
+F=zeros(1,m*n);
+
+for i=1:m*n
+    F(i)=GaussianaMulti(S,M,x(i));
+end
+plot(x,F);
+hold on
+plot(Ux,0,'bo','MarkerFaceColor','r');
+%Calcola la probabilità condizionata P(x|y=0)
+%hold on;
+%[i j]=find(x==2);hold on;
+%plot3(x(i,j),y(i,j),F(i,j),'-g','LineWidth',2)

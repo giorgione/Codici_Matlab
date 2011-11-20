@@ -1,0 +1,76 @@
+% DisegnaGaussiana2_sc.m
+% 1) Costruisco una Distribuzione Gaussiana Bivariata a variabili
+% statisticamente indipendenti
+%
+% 2) Disegno la Distribuzione Gaussiana Bivariata
+%
+% 3) Disegno il Grafico delle distribuzioni marginali P(x|y) e P(y|x)
+clc;clear;close all
+
+Ux=2;
+Ox=1;
+
+Uy=1;
+Oy=.5;
+
+M=[Ux;Uy];
+Oxy=0;
+[x y]=meshgrid(-2:.125:8,-2:.125:8);
+
+%Matrice di Varianza Covarianza
+S=[Ox^2 Oxy;Oxy Oy^2];
+d=2;
+[m,n]=size(x);
+X=[reshape(x,1,m*n);reshape(y,1,m*n)];
+F=zeros(m,n);
+
+for i=1:m*n
+    F(i)=GaussianaMulti(S,M,X(:,i));
+end
+F=reshape(F,m,n);
+
+%Calcola la probabilità condizionata P(x|y=0)
+hold on;
+[i j]=find(x==2);hold on;
+plot3(x(i,j),y(i,j),F(i,j),'-g','LineWidth',2)
+
+
+[i1 j1]=find(y==.5);
+plot3(x(i1,j1),y(i1,j1),F(i1,j1),'-r','LineWidth',2);
+
+mesh(x,y,F);
+xlabel('x');
+ylabel('y');
+
+
+
+%Calcolo la distribuzione Marginale della X (somma lungo le colonne)
+Fx=sum(F,1);
+figure;
+plot(x(1,:),Fx,'-r','LineWidth',2.2);
+hold on;
+plot(Ux,0,'bo','MarkerFaceColor','r');
+title('Distribuzione Marginale P(x)');
+
+%Calcolo la distribuzione Marginale della Y (somma lungo le righe)
+Fy=sum(F,2);
+figure;
+plot(y(:,1),Fy,'-r','LineWidth',2.2);
+hold on;
+plot(Uy,0,'bo','MarkerFaceColor','r');
+title('Distribuzione Marginale P(y)');
+
+%Calcolo gli Autovalori ed Autovalori della matrice Sigma
+[X,lamda]=eig(S);
+figure;
+hold on;
+a1=sqrt(lamda(1,1));
+a2=sqrt(lamda(2,2));
+line(Ux+[a1;-a1],[Uy;Uy])
+line([Ux;Ux],Uy+[a2 ;-a2])
+contour(x,y,F);
+xlabel('x');
+ylabel('y');
+
+
+

@@ -1,0 +1,40 @@
+clc;clear;close all
+p = [-1 -1 2 2; 
+      0 5 0 5];
+t = [-1 -1 1 1];
+net = newff(p,t,3,{},'traingdm');
+net.trainParam.lr = 0.05;
+net.trainParam.mc = 0.9;
+net = train(net,p,t);
+y = sim(net,p)
+figure;
+for i=1:4
+    DisegnaClusters(p(1,i),p(2,i),sign(y(i)))
+end
+
+
+%Test sulle Reti Neurali (Problema dello XOR) con il TOOLBOX di Matlab
+Pattern=[-1 1  1 -1; 
+         -1 1 -1  1];
+     
+Target=[0 0 1 1];
+
+net=newff(Pattern,Target,2,{'logsig','logsig'},'traingdm');
+net.trainParam.show=50;
+net.trainParam.lr=0.05;
+net.trainParam.mc = 0.9;
+net.trainParam.epochs=500;
+net.trainParam.goal=1e-5;
+
+[net,tr]=train(net,Pattern,Target); % tr (training record) contiene informazioni su come
+% procede l'addestramento
+Out=sim(net,Pattern)
+figure;
+for i=1:4
+    
+    if(Out(i)>0.5)
+        DisegnaClusters(Pattern(1,i),Pattern(2,i),1)
+    else
+        DisegnaClusters(Pattern(1,i),Pattern(2,i),-1)
+    end
+end

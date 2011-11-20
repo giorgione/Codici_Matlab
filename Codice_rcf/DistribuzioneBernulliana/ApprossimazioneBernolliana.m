@@ -1,0 +1,67 @@
+% ApprossimazioneBernulliana.m
+% Verifico che :
+%
+% per n-> + inf   e         n*P>10
+%
+% una distribuzione Binomiale B(n,P) puo essere approssimata mediante una 
+% distribuzione Gaussiana N(u,o^2) avente parametri:
+% 
+% 1) u= n*P
+% 
+% 2) o= sqrt(n*P(1-P)))
+%
+% Procedimento:
+% 
+% for I=1:15
+%
+% 1) Incremento il numero di prove: n=no*(I+1)
+%
+% 2) Genero La distribuzione di Bernulli P(X,n,0.2)
+%
+% 3) Calcolo i Valori di Media e Varianza.
+%
+% 4) Genero la Distribuzione Gaussiana.
+%
+% 5) Calcolo l' errore di approssimazione in Norma-2
+%
+% end
+%
+clc;close all;clear
+P=0.2;
+n0=10;
+errore=zeros(1,15);
+for I=1:15
+    passo=I+1;
+    %incremento il numero di Prove
+    n=n0*passo;
+    N(I)=n;
+    %numero di successi, valore assumibili:
+    %[0-n]--> nessun successo- tutti successi
+    x=0:passo:n;
+    
+    %Calcolo La Distribuzione Binomiale
+    ybinomiale=DistribuzioneBernulli(x,n,P);
+    Var=sqrt(n*P*(1-P));
+    Media=n*P;
+    
+    %Calcolo la Distribuzione Gaussiana approssimante
+    ygaussiana=exp( (-.5)*( ( (x-Media)/Var ).^2 ))./(sqrt(2*pi)*Var);
+    
+    %Calcolo l'errore di approssimazione in norma-2
+    errore(I)=norm(ybinomiale-ygaussiana,2);
+    
+    %Disegno le 2 distribioni
+    figure;hold on
+    plot(x,ybinomiale,'r');
+    plot(x,ygaussiana,'b');
+    plot(Media,0,'og','MarkerSize',5,'MarkerFaceColor','g')
+    legend(['Distribuzione Binomiale n=' num2str(n) ' P=0.2'],'Distribuzione Gaussiana')
+    pause;
+end
+figure;
+plot(N,errore,'r')
+title('Errore in norma-2')
+xlabel('numero di prove')
+ylabel('Errore di Approssimazione')
+pause;
+close all

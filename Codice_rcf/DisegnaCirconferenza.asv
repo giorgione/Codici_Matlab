@@ -1,0 +1,21 @@
+% function DisegnaCirconferenza(Xo,r)
+% Disegna la circonferenza di centro Xo=[x y] e raggio r
+% Parametri in:
+% 
+% - Xo: centro della circonferenza
+%
+% - r: Raggio della circonferenza
+%
+% - n: Numero di Punti in cui si desidera valutare la circonferenza
+% 
+% Parametri out:
+%
+% - x: n ascisse sulla circonferenza
+%
+% - y: n ordinate sulla circonferenza
+function [x,y]=DisegnaCirconferenza(Xo,r,n,disegna)
+t=linspace(0,2*pi,n);
+x=Xo(1)+r*cos(t);
+y=Xo(2)+r*sin(t);
+if(disegna=)
+plot(x,y,'r')

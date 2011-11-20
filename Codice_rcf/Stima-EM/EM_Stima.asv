@@ -1,0 +1,39 @@
+% Stima dei parametri di un Modello Gaussiano attraverso l' Algoritmo EM
+% supponendo che i dati siano Mancanti
+
+%siamo in R2
+Teta0=[0;0;1;1];
+syms x4 m1 m2 u1 u2 real
+TetaS=[m1;m2;u1;u2];
+
+% Matrice delle osservazioni (i-esima colonna --> osservazione xi )
+Data=[0 1 2 x4;
+      2 0 2 4];
+  
+%Disegno i 3 punti
+plot(Data(1,1),Data(2,1),'or','MarkerFaceColor','r');hold on;
+
+Sigma=diag(TetaS(3:4))
+M=TetaS(1:2)
+%Definisco la gaussiana parametrica
+Fun=GaussianaMulti_Fun_t(TetaS);
+
+ 
+F=1;
+
+Q1=@(t)( GaussianaMulti_Punti(diag(t(3:4)),t(1:2).',Data(:,1:3)));
+
+%Costruisco la funzione di Verosimiglianza dei dati completi
+Q=@(t) (-1)* ( GaussianaMulti_Punti(diag(t(3:4).^2),[t(1);t(2)],double(Data(:,1:3)))   - (1+t(1).^2)/(2*t(3).^2) -((4-t(2))^2)/(2*t(4)^2)-log(2*pi*t(3)*t(4)));
+
+%M-Step
+options = optimset('Display','final','MaxFunEvals',500,'MaxIter',500,'TolFun',1e-3,'TolX',1e-20);
+%[Teta,Val,exitflag,output] = fminsearch(Q,Teta0,options);
+T(:,1)=Teta0;
+k=1;
+while (k<5)
+    [T(:,k+1),Val,exitflag,output] = fminsearch(Q,[T(1:2,k);sqrt(T(3:4,k))],options);
+    T(3:4,k+1)=T(3:4,k+1).^2;
+    k=k+1;
+end
+
