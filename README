@@ -1,9 +1,21 @@
 Codici Matlab inferenza Bayesiana
 
 %Per caricare sul server
+%fare il commit sul file
+git commit {nome file}
+%carico
 git pull origin master
 
+
+
 %Per scaricare dal server
+
+%Creare un nuovo progetto git
+git init
+%aggiungere il repo sul web
+git remote add origin git@github.com:giorgione/Codici_Matlab
+%scaricare
 git push origin master
+
 
 
