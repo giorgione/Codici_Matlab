@@ -23,3 +23,7 @@ if isempty(y)==0
     plot(y(1,:),y(2,:),'og','MarkerFaceColor','g') 
     pause
 end
+
+
+%Ridisegno solo le Osservazioni che mantengo
+clf;

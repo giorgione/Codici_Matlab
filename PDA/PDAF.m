@@ -175,11 +175,11 @@ for M=1:MC_number
         number_returns=size(Noise,2);
         
         %Alle Osservazioni RUMOROSE Aggiungo la MISURA CORRETTA
-        b=zeros(1,2);
-        b(1)=data_measurement(1,t);
-        b(2)=data_measurement(2,t);
+        MisuraCorretta=zeros(1,2);
+        MisuraCorretta(1)=data_measurement(1,t);
+        MisuraCorretta(2)=data_measurement(2,t);
         %Osservazioni Multiple y1
-        y1=[Noise b'];
+        y1=[Noise MisuraCorretta'];
         
         %% FILTRAGGIO delle Osservazioni MULTIPLE mediante GATE
         %Osservazioni Multiple y1 filtrate attraverso il GATE g-sigma
