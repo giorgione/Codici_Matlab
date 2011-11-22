@@ -5,7 +5,7 @@
 %       - Le Misure Generate al tempo k
 %       - I Dati che passano il Test di Validita
 clf
-ezplot(F,[-10^4 10^4]); hold on
+ezplot(Fun,[-10^4 10^4]); hold on
 
 %Disegno la misura predetta
 plot(Z_predic(1),Z_predic(2),'or','MarkerFaceColor','r')

@@ -159,7 +159,7 @@ for M=1:MC_number
         %Inizializzo tutti le Variabili presenti nel Modello
         NVar=2;
         Trial=40;
-        P=@(Theta)DistrCircolare(Theta,[x_predic(1);x_predic(3) ],side);
+        Pdf=@(Theta)DistrCircolare(Theta,[x_predic(1);x_predic(3) ],side);
 
 
         %INIZIALIZZO I CAMPIONI 
@@ -170,7 +170,7 @@ for M=1:MC_number
         Theta(1,1)=1; 
         Theta(2,1)=1; 
         %Campiono
-        Noise=Fun_MetroPolisHastingsSampler_CW(P,Theta,NVar,Trial,[1 side]);
+        Noise=Fun_MetroPolisHastingsSampler_CW(Pdf,Theta,NVar,Trial,[1 side]);
         NOISE=[NOISE Noise];
         number_returns=size(Noise,2);
         
@@ -198,7 +198,7 @@ for M=1:MC_number
                 m=m+1;                                                      
             end
         end
-        TestValidationGate
+        DisegnaValidationGate_Predict
         
         %% PDA FILTERING con y OSSERVAZIONI MULTIPLE al tempo t
         %Calcolo Bk
@@ -207,7 +207,10 @@ for M=1:MC_number
            %Tutti le osservazioni sono fuori gate:
            % Lo Stato Stimato e uguale allo stato PREDETTO
            x_filter(:,t)= x_predic;
-           P=P_predic;                                                      
+           P=P_predic; 
+           %Disegno 
+            DisegnaValidationGate_Update
+           
         else   
             %STIMA DELLO STATO via PROBABILISTIC DATA ASSOCIATION
             
@@ -250,6 +253,8 @@ for M=1:MC_number
             %Stato Stimato= Combinazione STATO PREDETT0 e STATO
             x_filter(:,t)= x_predic + K*Vk;
             
+            %Disegno 
+            DisegnaValidationGate_Update
             %Calcolo la MATRICE DI COVARIANZA AGGIORNATA con le Misure
             %Correte
             %originale
