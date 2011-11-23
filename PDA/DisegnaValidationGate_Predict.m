@@ -4,10 +4,11 @@
 %       - il Validation Gate
 %       - Le Misure Generate al tempo k
 %       - I Dati che passano il Test di Validita
+
 zx = sym('zx','real');
 zy = sym('zy','real');
 Z=[zx;zy];
-
+figure(1)
 Fun=(Z-Z_predic).'*inv(S)*(Z-Z_predic)-g_sigma;
 ezplot(Fun,[-10^4 10^4]); hold on
 
@@ -21,8 +22,9 @@ pause
 %Dati che passano il Test di Validita
 if isempty(y)==0
     plot(y(1,:),y(2,:),'og','MarkerFaceColor','g') 
-    pause
+    
 end
 
-
+display('Predict: done')
+pause
  

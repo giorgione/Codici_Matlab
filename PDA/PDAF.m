@@ -63,7 +63,7 @@ target_delta=100;
 R=[target_delta^2  0;
     0  target_delta^2]; 
                                         
-% 
+% Stima Iniziale della Matrice di Cov Errore di Stima sullo Stato
 P=[target_delta^2 target_delta^2 0 0;
    target_delta^2 2*target_delta^2 0 0;
    0 0 target_delta^2 target_delta^2;
@@ -76,15 +76,17 @@ x_filter1=zeros(4,n,MC_number);
 %% Genero L'evoluzione del Sistema Dinamico che cerco di ricostruire:
 %  1)assegno lo Stato Inziale 
 %  2)faccio evolvere il sistema
-data_measurement1=zeros(4,n);   
+data_status=zeros(4,n);   
 
-data_measurement1(:,1)=target_position';
+data_status(:,1)=target_position';
+
 for i=2:n
        %Evoluzione dello STATO del sistema Dinamico 
-       data_measurement1(:,i)=A*data_measurement1(:,i-1)+G*sqrt(Q)*(randn(2,1));   %ʵ��λ�� 
-       
+       data_status(:,i)=A*data_status(:,i-1)+G*sqrt(Q)*(randn(2,1));   %ʵ��λ��  
 end
-plot(data_measurement1(1,:),data_measurement1(3,:),'-');
+
+figure(2)
+plot(data_status(1,:),data_status(3,:),'-o');hold on
 xlabel('x(m)'),ylabel('y(m)');
 legend('Processo da Ricostruire ',4)
 %axis([0 30 1 25])
@@ -107,8 +109,8 @@ for M=1:MC_number
     %
     % C*X(k) +  v(k) = [X(k,1) X(k,3)] +  v(k)
     for i=1:n        
-         data_measurement(1,i)=data_measurement1(1,i)+randn(1)*target_delta;
-         data_measurement(2,i)=data_measurement1(3,i)+randn(1)*target_delta;     
+         data_measurement(1,i)=data_status(1,i)+randn(1)*target_delta;
+         data_measurement(2,i)=data_status(3,i)+randn(1)*target_delta;     
     end
     NOISE=[];
     
@@ -140,26 +142,23 @@ for M=1:MC_number
         %Calcolo VALIDATION GATE
         %
         %Volume VG: siamo nel 2D
-        ellipse_Volume=c2*g_sigma*sqrt(det(S))                              
+        ellipse_Volume=c2*g_sigma*sqrt(det(S));
+        disp(det(S))
+        inv(S)
         %number_returns=floor(10*ellipse_Volume*gamma+1)
           
         %GENERO UN UPPERBOUND PER IL VALIDATION GATE e campiono attraverso
         %la tecnica di Rigetto
         %Lato del Volume
-        side=sqrt((10*ellipse_Volume*gamma+1)/gamma)/2                   
+        side=sqrt((10*ellipse_Volume*gamma+1)/gamma)/2;                   
        
         %% GENERAZIONE Osservazioni MULTIPLE da filtrare attraverso il VALIDATION GATE
-        %Aggiungo del RUMORE alle predizioni: 
-%         Noise_x=x_predic(1)+side-2*rand(1,number_returns)*side;            
-%         Noise_y=x_predic(3)+side-2*rand(1,number_returns)*side;
-%         Noise=[Noise_x ;Noise_y];
-%         NOISE=[NOISE Noise];
-        
-        %% Utilizzo MCMC
+        %  Utilizzo MCMC per campionare una Distribuzione CIRCOLARE UNIFORME
+        %  centrata attorno alla MISURA PREDETTA o STATO PREDETTO
         %Inizializzo tutti le Variabili presenti nel Modello
         NVar=2;
         Trial=40;
-        Pdf=@(Theta)DistrCircolare(Theta,[x_predic(1);x_predic(3) ],side);
+        Pdf=@(Theta)DistrCircolare(Theta,[x_predic(1);x_predic(3) ],40);
 
 
         %INIZIALIZZO I CAMPIONI 
@@ -167,10 +166,10 @@ for M=1:MC_number
         %estratto dal Processo di campionamento
         Theta=zeros(NVar,Trial);
          %Punto Iniziale
-        Theta(1,1)=1; 
-        Theta(2,1)=1; 
+        Theta(1,1)=x_predic(1); 
+        Theta(2,1)=x_predic(3) ; 
         %Campiono
-        Noise=Fun_MetroPolisHastingsSampler_CW(Pdf,Theta,NVar,Trial,[1 side]);
+        Noise=Fun_MetroPolisHastingsSampler_CW(Pdf,Theta,NVar,Trial,[1 20]);
         NOISE=[NOISE Noise];
         number_returns=size(Noise,2);
         
@@ -214,40 +213,41 @@ for M=1:MC_number
         else   
             %STIMA DELLO STATO via PROBABILISTIC DATA ASSOCIATION
             
-            %% Calcolo dei coefficienti Beta(i)
+            %% Calcolo dei coefficienti BeTa(i)
             %
-            % Beta(i) = e(i)/(b + sum(e(i))) i=1..m
-            % Beta(i) = b/(b + sum(e(i))) i=0
+            % BeTa(i) = e(i)/(b + sum(e(i))) i=1..m
+            % BeTa(i) = b/(b + sum(e(i))) i=0
             %
-            Beta=zeros(1,m);
-            % Calcolo il coefficiente b da cui dipende Beta(i)
+            BeTa=zeros(1,m);
+            % Calcolo il coefficiente b da cui dipende BeTa(i)
             b=gamma*2*pi*sqrt(det(S))*(1-Pd*Pg)/Pd;
             
-            %Calcolo i Coefficienti e(i) da cui dipende Beta(i)
+            %Calcolo i Coefficienti e(i) da cui dipende BeTa(i)
             e=zeros(1,m);
+            residuo=zeros(2,m);
             E=0;
             for i=1:m
-                residuo=y(:,i)-Z_predic;
+                residuo(:,i)=y(:,i)-Z_predic;
                 % Distanza tra OSSERVAZIONE e OSSERVAZIONE PREDETTA
-                e(i)=(residuo)'*inv(S)*(residuo);
+                e(i)=(residuo(:,i))'*inv(S)*(residuo(:,i));
                 % quanto e VEROSIMILE L-OSSERVAZIONE y all osservazione
                 % predetta
                 E=E+exp(-e(i)/2);
             end 
             
-            %Posso calcolare Beta
-            Beta0=b/(b+E);
+            %Posso calcolare BeTa
+            BeTa0=b/(b+E);
             %Calcolo
             Vk=zeros(2,1);
             %Termine necessarop per calcolare Spread Of innovetion term   
             v1=zeros(2,2);
             for i=1:m
-                Beta(i)=e(i)/(b+E);   
-                residuo=y(:,i)-Z_predic;
+                BeTa(i)=e(i)/(b+E);   
+                 
                 %Combined Innovation 
-                Vk=Vk+Beta(i)*(residuo);
+                Vk=Vk+BeTa(i)*(residuo(:,i));
                 %Calcolo La somma termine Combined Innovation
-                v1=v1+Beta(i)*(residuo)*(residuo)';
+                v1=v1+BeTa(i)*(residuo(:,i))*(residuo(:,i))';
             end
             %% Update (FILTRAGGIO BAYESIANO RICORSIVO )
             %Stato Stimato= Combinazione STATO PREDETT0 e STATO
@@ -258,14 +258,14 @@ for M=1:MC_number
             %Calcolo la MATRICE DI COVARIANZA AGGIORNATA con le Misure
             %Correte
             %originale
-            Pc=(eye(4)-K*C)*P_predic  %--> KALMAN FILTER
+            Pc=(eye(4)-K*C)*P_predic;  %--> KALMAN FILTER
             %Pc=P_predic-K*S*K';
             
             %Spread Of innovetion term 
             PP=K*(v1-Vk*Vk')*K';
             
             %Matrice di Covarianza a Posteriori sull'errore di stato
-            P=Beta0*P_predic+(1-Beta0)*Pc+PP;
+            P=BeTa0*P_predic+(1-BeTa0)*Pc+PP;
             
         end
 
@@ -309,7 +309,7 @@ legend('Y�������λ��','Y�������λ��',4)
 figure
 a=zeros(1,n);                                               
 for j=1:n
-        a(1,j)=sqrt((x_filter(1,j)-data_measurement1(1,j))^2+(x_filter(3,j)-data_measurement1(3,j))^2);
+        a(1,j)=sqrt((x_filter(1,j)-data_status(1,j))^2+(x_filter(3,j)-data_status(3,j))^2);
 end
 plot(1:n,a(1,:),'r:') 
 xlabel('t(s)'),ylabel('Ԥ�����(m)');
