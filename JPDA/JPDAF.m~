@@ -14,7 +14,6 @@ Pg=0.99;
 g_sigma=9.21;                                                                     
 lambda=2; 
 gamma=lambda*10^(-6); 
-
 %Misure Effettuate sul Target
 Target_measurement=zeros(c,2,n); 
 
