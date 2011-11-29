@@ -1,5 +1,12 @@
-%% Chapter 2. Exercise 5
-%  Use Metropolis procedure to sample from Normal density
+%% Chapter 2. ( Exercise 5 )
+%  Use Metropolis procedure to sample from Normal density N(theta | 0,1)
+%
+%   Utilizzo come PROPOSAL:  
+%                  t       t-1                  t
+%           Q(theta | theta   ) = N(theta| theta , var) 
+%
+%           Gaussiana Centrata nella Stima attuale di theta
+% 
 %  Utilizzo starting point differenti per vedere come Campiona la
 %  procedura
 %
@@ -23,12 +30,17 @@ t = 1;
 while t < T % Iterate until we have T samples
     t = t + 1;
     
-    % Propose a new value for theta using a NORMAL PROPOSAL DENSITY
+    % Propose a new value for theta using a NORMAL PROPOSAL DENSITY Q
     thetastar = normrnd( theta(t-1) , sigma,K,1);
     
-    % Calculate the acceptance ratio
+    % Calcolo del ACCEPTANCE RATIO:
+    %                  t
+    %          P( theta  )
+    % min([1,--------------])
+    %                t-1
+    %         P( theta  )
     alpha = min( [ ones(K,1) exp(-.5*( thetastar.^2 - theta(:,t-1).^2 )) ].' );
-    % Draw a uniform deviate from [ 0 1 ]
+    % Draw a UNIFORM DEVIATE from [ 0 1 ]
     u = rand(1,K);
     
     for i=1:K

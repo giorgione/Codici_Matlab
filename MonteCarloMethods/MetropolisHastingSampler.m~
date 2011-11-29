@@ -1,5 +1,11 @@
-%% Chapter 2. Exercise 5
-%  Use Metropolis-Hastings procedure to sample from WEIBULL DENSITY
+%% Chapter 2. Exercise 1
+%  Use Metropolis-Hastings procedure to sample from WEIBULL DENSITY,
+%  distribuzione parametrica W(theta|a,b)
+%
+% Utilizzo come PROPOSAL:  
+%                  t       t-1                      t
+%           Q(theta | theta   ) = Gamma(theta| theta * Tau , 1/Tau) 
+%
 %  Utilizzo starting point differenti per vedere come Campiona la
 %  procedura
 %
@@ -36,11 +42,11 @@ while t < T % Iterate until we have T samples
     alpha1=gampdf(theta(:,t-1),thetastar*tau ,1/tau)./gampdf(thetastar,theta(:,t-1)*tau ,1/tau);
     alpha0=wblpdf(thetastar,a,b)./wblpdf(theta(:,t-1),a,b);
     
-    % Calculate the acceptance ratio
+    % Calculate the ACCEPTANCE RATIO
     alpha = min( [ ones(K,1)  alpha0.*alpha1].' );
                                 
                             
-    % Draw a uniform deviate from [ 0 1 ]
+    % Draw a UNIFORM DEVIATE from [ 0 1 ]
     u = rand(1,K);
     
     for i=1:K
@@ -53,6 +59,7 @@ while t < T % Iterate until we have T samples
         end
     end
 end
+%Tasso di Accept
 Acceptance=Acceptance/T;
 
 nbins = 200;

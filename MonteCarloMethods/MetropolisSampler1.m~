@@ -1,6 +1,20 @@
 %% Chapter 2. 
-%  Use Metropolis procedure to sample from Cauchy density
-%  %Utilizzo starting point differenti per vedere come Campiona la
+% Utilizzo Metropolis Sampler per campionare la Cauchy density
+% caratterizzata da:
+% 
+%                1
+% P(theta)= --------------
+%           pi*(1+theta^2)      
+%
+%                                                
+% Utilizzo come PROPOSAL:  
+%                  t       t-1                  t
+%           Q(theta | theta   ) = N(theta| theta , var) 
+%
+%           Gaussiana Centrata nella Stima attuale di theta
+%
+%  Utilizzo starting point differenti per vedere com lavora l'algoritmo in
+%  funzione dello STARTING POINT INIZIALE
 %  procedura
 %
 %% Initialize the Metropolis sampler
@@ -23,12 +37,17 @@ t = 1;
 while t < T % Iterate until we have T samples
     t = t + 1;
     
-    % Propose a new value for theta using a NORMAL PROPOSAL DENSITY
+    % Propose a new value for theta using a NORMAL PROPOSAL DENSITY Q
     thetastar = normrnd( theta(t-1) , sigma,K,1);
     
-    % Calculate the acceptance ratio
+    % Calcolo del ACCEPTANCE RATIO:
+    %                  t
+    %          P( theta  )
+    % min([1,--------------])
+    %                t-1
+    %         P( theta  )
     alpha = min( [ ones(K,1) cauchy( thetastar )./ cauchy( theta(:,t-1) ) ].' );
-    % Draw a uniform deviate from [ 0 1 ]
+    % Draw a UNIFORM DEfrom [ 0 1 ]
     u = rand(1,K);
     
     for i=1:K
