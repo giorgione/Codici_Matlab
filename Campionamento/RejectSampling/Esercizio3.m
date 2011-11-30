@@ -1,5 +1,10 @@
-%Esercizio sul CAMPIONAMENTO CON RIGETTO su una distribuzione esponenziale
-% 
+% Esercizio 3 
+%
+% CAMPIONAMENTO CON RIGETTO su una distribuzione esponenziale
+%
+%                           -x/lambda
+% Pdf(x| lamda)= 1/lamda *  e              --> TARGET DISTR.
+
 clc;clear;close all
 %Considero N punti
 N=100;
@@ -52,7 +57,7 @@ for i=1:K
     outcome(i)=(j-1)/N;
 end
 
-%genero K campioni Random a distribuzione uniforme in [0 1]
+%genero K campioni Random dalla distribuzione uniforme in [0 c/N]
 
 Y1=unifrnd(0,c/N,1,K);
 

@@ -1,5 +1,12 @@
-%% Chapter 2. Exercise 5
-%  Use Metropolis-Hastings procedure to sample from WEIBULL DENSITY
+%% Chapter 2. ( Exercise 5 )
+%  Use Metropolis procedure to sample from Normal density N(theta | 0,1)
+%
+%   Utilizzo come PROPOSAL:  
+%                  t       t-1                  t
+%           Q(theta | theta   ) = N(theta| theta , var) 
+%
+%           Gaussiana Centrata nella Stima attuale di theta
+% 
 %  Utilizzo starting point differenti per vedere come Campiona la
 %  procedura
 %
@@ -12,50 +19,41 @@ thetamax = 30; % define a range for starting values
 
 %Genero K processi di Campionamento
 K=4;
-theta = zeros( K , T); % Init storage space for our samples
+theta = zeros( K , T ); % Init storage space for our samples
 seed=1; rand( 'state' , seed ); randn('state',seed ); % set the random seed
 %Genero il punto Iniziale
-theta(:,1) = round(unifrnd( thetamin , thetamax,K,1)); % Generate start value
+theta(:,1) = unifrnd( thetamin , thetamax,K,1); % Generate start value
 
 
 %% Start sampling
-%parametro della gamma
-tau=1;
-%Parametri della weibull distribution
-a=2;
-b=1.9;
 t = 1;
-Acceptance=zeros(1,K);
 while t < T % Iterate until we have T samples
     t = t + 1;
     
-    % Propose a new value for theta using a GAMMA PROPOSAL DENSITY
-    thetastar = gamrnd( theta(:,t-1)*tau ,ones(K,1)./tau);
+    % Propose a new value for theta using a NORMAL PROPOSAL DENSITY Q
+    thetastar = normrnd( theta(t-1) , sigma,K,1);
     
-    %Calcolo i fattori ce caratterizzano la ACCCEPTANCE PROBABILITY
-    alpha1=gampdf(theta(:,t-1),thetastar*tau ,1/tau)./gampdf(thetastar,theta(:,t-1)*tau ,1/tau);
-    alpha0=wblpdf(thetastar,a,b)./wblpdf(theta(:,t-1),a,b);
-    
-    % Calculate the acceptance ratio
-    alpha = min( [ ones(K,1)  alpha0.*alpha1].' );
-                                
-                            
-    % Draw a uniform deviate from [ 0 1 ]
+    % Calcolo del ACCEPTANCE RATIO:
+    %                  t
+    %          P( theta  )
+    % min([1,--------------])
+    %                t-1
+    %         P( theta  )
+    alpha = min( [ ones(K,1) exp(-.5*( thetastar.^2 - theta(:,t-1).^2 )) ].' );
+    % Draw a UNIFORM DEVIATE from [ 0 1 ]
     u = rand(1,K);
     
     for i=1:K
         % Do we accept this proposal?
         if u(i) < alpha(i)
             theta(i,t) = thetastar(i); % If so, proposal becomes new state
-            Acceptance(i)=Acceptance(i)+1;
         else
             theta(i,t) = theta(i,t-1); % If not, copy old state
         end
     end
 end
-Acceptance=Acceptance/T;
 
-nbins = 200;
+tnbins = 200;
 thetabins = linspace( thetamin , thetamax , nbins );
 %% Display histogram of our samples
 for i=1:K
@@ -70,7 +68,7 @@ for i=1:K
     xlabel( '\theta' ); ylabel( 'p(\theta)' );
 
     %% Overlay the theoretical density
-    y = wblpdf( thetabins,a,b );
+    y = normpdf( thetabins,0,1 );
     hold on;
     plot( thetabins , y/sum(y) , 'r-' , 'LineWidth' , 3 );
     set( gca , 'YTick' , [] );
