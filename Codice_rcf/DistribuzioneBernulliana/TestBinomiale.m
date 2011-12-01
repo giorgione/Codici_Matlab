@@ -1,8 +1,24 @@
 %Verifico le Proprietà della distribuzione Binomiale
+% DISTRIBUZIONE DI PROBABILITA BINOMIALE:
+%
+%                 ( n )  x       n-x
+% f(x)= P(X=x) =  (   ) p   (1-p)               <-->    P(x|n,p)
+%                 ( x )
+%
+% essa indica:
+%             probabilit� che la Variabile Aleatoria BERNOULLIANA X verifichi x successi 
+%             su n prove con p probabilit� di sucesso (sempre uguale)
+%
+% propriet�:
+%
+% 1) m = E[ X ] = n*p    --> Valore MEDIO
+% 
+%                2
+% 2) v = E[ (X-m) ] =  n*p(1-p)    --> Varianza 
 clc;close all;clear
 syms x u
-n=10;
-%il parametro di probabilità è fisso
+n=20;
+%il parametro di probabilità è fisso : PROBABILITA DI SUCCESSO
 U=0.25;
 N=1:n;
 m=0:n;
@@ -23,46 +39,39 @@ zlabel('P(x=1 per m volte|u,N)')
 sum(P1,2)
 
 
-%% L' Evento complementare di P(m|N,u=0.25) a cosa corrisponde?
-% Non avere m successi su N lanci =
+%% L' Evento complementare Pc di P(x=m|N,u=0.25) a cosa corrisponde?
+% Non avere m successi su N lanci P(x!=m|N,u=0.25)
 %        
-%       ------
-%       \                                                        M
-%  E(w)=   P(n|N,u)= 1 -P(m|N,u)
-%       /
-%       ------
-%       per n!=m
-%
 
 [r,c]=size(P1)
 for i=1:r
     for j=1:c
-        P00(i,j)=sum(P1(i,:))-P1(i,j)
+        Pc(i,j)=1-P1(i,j);
     end
 end
 
 figure;
-surf(m,N,P00)
-xlabel('m')
-ylabel('N')
+surf(m,N,Pc)
+xlabel('m: numero Insuccessi')
+ylabel('N: numero prove effettuate')
 zlabel('P(m!=n|u,N)')
 
 P0=1-P1;
 figure;
 surf(m,N,P0)
-xlabel('m')
-ylabel('N')
+xlabel('m: numero Insuccessi')
+ylabel('N: numero prove effettuate')
 zlabel('1-P(m|u,N)')
 
 % P0+P1= tutti uno
-% P00+P1 = tutti uno
-% P00 e P0 sono uguali
+% Pc+P1 = tutti uno
+% Pc e P0 sono uguali
 
-%Verifico che P(m|N, u) +P(N-m|N, 1-u) =1 per ogni u
+%Verifico che P(m|N, u) +P(n!=m|N, 1-u) =1 per ogni u
 figure;
-surf(m,N,P1+P00)
-xlabel('m')
-ylabel('N')
+surf(m,N,P1+Pc)
+xlabel('m: numero successi')
+ylabel('N: numero prove effettuate')
 zlabel('P(x=0|u,N)')
 %% EQUIVALENZA   P(N-m|N,1-u) = P(m|N,u)
 % P(N-m|N,1-u)  Probabilità di N-m insuccessi su N lanci avendo probabilità di singolo
@@ -71,7 +80,7 @@ zlabel('P(x=0|u,N)')
 P11=DistribuzioneBinomiale(N-m,N,1-U);
 figure;
 surf(m,N,P11)
-xlabel('m')
-ylabel('N')
+xlabel('m: numero successi')
+ylabel('N: numero prove effettuate')
 zlabel('P(x=0|u,N)')
 
