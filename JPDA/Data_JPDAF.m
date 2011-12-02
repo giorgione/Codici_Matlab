@@ -16,5 +16,6 @@ c=2;
 
 %Posizioni Iniziali
 target_position=[1500 300 500 400; 
-                 500 400 1500 300];                                              
+                 500 400 1500 300]; 
+             
 JPDAF(target_position,n,T,MC_number,c);                                           

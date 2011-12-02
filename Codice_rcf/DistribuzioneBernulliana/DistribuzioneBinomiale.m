@@ -43,11 +43,18 @@ function F=DistribuzioneBinomiale(m,N,u)
 %% i valori Neg < 0 non sono ammissibili in quanto identificano M(numero di volte
 %  cui ho esito positivo) è  maggiore del Numero totale di prove
 Neg=N-m;
-[I J]=find(Neg<0)
-n=length(I)
+[I J]=find(Neg<0);
+n=length(I);
 %il fattoriale di valori negativi non può essere calcolato per definizione
 for i=1:n
     Neg(I(i),J(i))=1;
+end
+
+[I J]=find(N<0);
+n=length(I);
+%il fattoriale di valori negativi non può essere calcolato per definizione
+for i=1:n
+    N(I(i),J(i))=1;
 end
 
 F=factorial(N)./(factorial(m).*factorial(Neg));

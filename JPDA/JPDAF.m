@@ -253,18 +253,21 @@ for t=1:n
             end
         end
         
-        %Q2 conterrà solo le MISURE AMMISSIBILI: MATRICE m1 x 3
+        %Q2 conterrà solo le MISURE AMMISSIBILI: 
+        % MATRICE m1 x 3 --> MISURE sulle righe - TARGET sulle colonne
         Q2=Q1(1:m1,1:3);                                                               
         
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %   Generazione delle POSSIBILI MATRICI DI ASSOCIAZIONE a partire dalle
     %   MISURE AMMISIBILI
     %
+    %       num: Numero totale di MATRICI       
+    %
     %       A_matrix: Matrice (m1 x 3 x 100) di tutte le possibili 
     %                 Associazioni dove:
     %                 m1 -> numero di MISURE AMMISSIBILI
     %                 3  -> numero tot. di track (1:clutter) (2-3: tracks)
-    %                 1000 -> numero massimo ASSOCIAZIONI AMMISSIBILI
+    %                 10000 -> numero massimo ASSOCIAZIONI AMMISSIBILI
     %                         generate dalla MATRICE Q2 secondo la
     %                         procedura descritta nell'articolo
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -280,7 +283,7 @@ for t=1:n
            %
            % 1) LETTURA PER RIGHE ed ESTRAZIONE DEL PRIM0 ELEMENTO 1
            for i=1:m1
-                
+               % Misura i-esima e ammissibile per il TARGET 2
                if Q2(i,2)==1                                                              
                     A_matrix(i,2,num)=1;
                     A_matrix(i,1,num)=0;                                
@@ -313,30 +316,52 @@ for t=1:n
         %Ho Generato Tutte le POSSIBILI ASSOCIAZIONI
         A_matrix=A_matrix(:,:,1:num);                                                  %��ٷ���ֵĽ�����A_matrix��
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    %%%  Calcolo di:
-    %            
-    %       - MEASURAMENT ASSOCIATION INDICATOR
+    %%%  Per ogni EVENTO DI ASSOCIAZIONE calcolo:
+    %       
+    %            k         k-1 
+    %       P(  Y  | X ,  Y    ): LIKELYHOOD delle MISURE OSSERVATE
     %
-    %       - TARGET DETECTION INDICATOR
+    %      
+    %                     k-1 
+    %       P( X | m  ,  Y    ):  PRIOR delle MISURE OSSERVATE
     %
-    %       -
+    %    e stimo A posteriori: 
+    %
+    %                    k  
+    %       P(  X  |   Y    ): STIMA A POSTERIORI DELLO STATO
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     Pr=zeros(1,num);
     %Considero tutte le Possibili MATRICI DI ASSOCIAZIONE
     for i=1:num
-        %Misure 
+        
+        %Tutte le Misure possono Essere falsi allarmi 
         False_num=m1;
         N=1;
-        %Per ogni Misura j
+        %% Fissato EVENTO DI ASSOCIAZIONE e la relativa MATRICE DI ASSOCIAZIONE   
+        %  Per ogni Misura j vado a calcolare:
+        %
+        %       - MEASURAMENT ASSOCIATION INDICATOR - tau(j,X)
+        %
+        %       - TARGET DETECTION INDICATOR - lambda(t,X)
+        %
+        % 
         for j=1:m1
             %Calcolo il MEASURAMENT ASSOCIATION INDICATOR per l'evento di
-            %Associazione xi (fisso j e sommo su tutti le Track(2-3))
+            %Associazione Xi (fisso j e sommo su tutti le Track(2-3))
             mea_indicator=sum(A_matrix(j,2:3,i));                                      %�ο�������ʽ4-48
             
             if mea_indicator==1   
                 %Considero a quale TRACK LA MISURA E' STATA ASSOCIATA
+                
+                %Aggiorno FM(X):  il numero Totale di Misure Errate in X
                 False_num=False_num-1;
-                if A_matrix(j,2,i)==1                                                  %���۲���Ŀ��1����
+                
+                %Individuo a quale delle 2 TRACKS la misura j e ASSOCIATA
+                %rispetto all' ASSOCIAZIONE PLAUSIBILE X e calcolo:
+                %
+                %                  k-1 
+                % P(  yj | Xjt ,  Y    )
+                if A_matrix(j,2,i)==1   % Xjt                                               %���۲���Ŀ��1����
                     b=(y(:,j)-Z_predic(:,1))'*inv(S(:,:,1))*(y(:,j)-Z_predic(:,1));    %��в��
                     N=N/sqrt(det(2*pi*S(:,:,1)))*exp(-1/2*b);                          %������̬�ֲ�����                         
                 else                                                                   %���۲���Ŀ��2����
@@ -344,82 +369,142 @@ for t=1:n
                     N=N/sqrt(det(2*pi*S(:,:,2)))*exp(-1/2*b);                          %������̬�ֲ�����                         
                 end                                                                        
             end
-        end
+        end 
+        %% N conterra la Joint Probability
+        %
+        %      k         k-1 
+        % P(  Y  | X ,  Y    ) = 
+        % 
+        %     ____
+        %      ||                      k-1 
+        %      ||     P(  yj | Xjt ,  Y    )
+        %Calcolo il Vulume totale del Validation GAte
+        V=ellipse_Volume(1)+ellipse_Volume(2); 
+        LikelyHood=N/(V^False_num);
         
+        %% Calcolo la PRIOR
+         %                     k-1 
+         %       P( X | m  ,  Y    ):  PRIOR delle MISURE OSSERVATE
+         %
         if Pd==1
-            a=1;
+            Prior=1;
         else
-            a=1;
+            Prior=1;
+           
+            
+            %Calcolo il TARGET ASSOCIATION INDICATOR per l'evento di
+            %Associazione Xi (fisso j e sommo su tutti le Track(2-3))
             for j=1:c
+                %TARGET INDICATOR PARZIALE: sommo solo 
                 target_indicator=sum(A_matrix(:,j+1,i));                               %�ο�������ʽ4-49
-                a=a*Pd^target_indicator*(1-Pd)^(1-target_indicator);                   %���������
+                
+                Prior=Prior*(Pd^target_indicator)*(1-Pd)^(1-target_indicator);                   %���������
             end
         end 
-        %Calcolo il Vulume totale del Validation GAte
-        V=ellipse_Volume(1)+ellipse_Volume(2);                                         %��ʾ�����������
+                                               %��ʾ�����������
 
+        %Calcolo il Numero di Eventi in X per i quali lo stesso set di  
+        % TARGETS e' rilevato:
+        %
+        %   m           m!
+        % P         =  ----               
+        %  m-FM(X)     FM(m)!
+        %
+        % Calcolo   FM(m)!
         a1=1;
         for j=1:False_num
             a1=a1*j;
         end
-        Pr(i)=N*a*a1/(V^False_num);
+        
+        %                    k  
+        %       P(  X  |   Y    ): STIMA A POSTERIORI DELLO STATO
+        Pr(i)=a1*LikelyHood*Prior;
     end
+    
     Pr=Pr/sum(Pr);
     %%%%%%%%%%%%%%%%%%%%%%%%%
     %%%  6. Calcolo dei Coefficienti Beta(j,t)
     %%%%%%%%%%%%%%%%%%%%%%%%%
-    U=zeros(m1+1,c);
+    BeTa=zeros(m1+1,c);
     for i=1:c
         for j=1:m1
             for k=1:num
-                U(j,i)=U(j,i)+Pr(k)*A_matrix(j,i+1,k);
+                BeTa(j,i)=BeTa(j,i)+Pr(k)*A_matrix(j,i+1,k);
             end
         end
     end
-    %Calcolo di Beta(0,t)
-    U(m1+1,:)=1-sum(U(1:m1,1:c));                                                      %��������Ŀ��T�����Ĺ������ʴ���U��m1+1,:),��һ��
+    %Calcolo di Beta(0,t) --> ultima posizione di Beta
+    BeTa(m1+1,:)=1-sum(BeTa(1:m1,1:c));                                                      
     %%%%%%%%%%%%%%%%%%%%%%%%%%
-    %%%  7.Kalman PREDICT - UPDATE
+    %%%  7.Kalman PREDICT   per i 2 FILTRI
     %%%%%%%%%%%%%%%%%%%%%%%%%%
-    for i=1:c                                                                          %����Э�������
+    for i=1:c         
+        %Matrice Covarianza Errore Predetto
+        %P(k|k-1)
         P_predic = A*P(:,:,i)*A'+G*Q*G';
-        K (:,:,i)= P_predic*C'*inv(S(:,:,i));
-        P(:,:,i)= P_predic-(1-U(m1+1,i))*K(:,:,i)*S(:,:,i)*K(:,:,i)';
+        %Matrice di GAIN
+        K(:,:,i)= P_predic*C'*inv(S(:,:,i));
+        
+        %Update della MAtrice di Covarianza: manca il Termine Pk che dipende
+        % dalla combined innovation
+        P(:,:,i)= P_predic-(1-BeTa(m1+1,i))*K(:,:,i)*S(:,:,i)*K(:,:,i)';
     end
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %%%  7.Kalman   UPDATE per i 2 FILTRI
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     for i=1:c
         a=0;         
-        b=0;
-        x_filter2=0;                                                                   %������õ��м����
+        Pk=0;
+        
+        %% Combined Innovation
+        % La formula e' in versione compatta rispetto all'articolo in quanto
+        % la matrice di Gain K e' moltiplicata per
+        x_filter2=0;    
+        
         for j=1:m1
-            x_filter2=x_filter2+U(j,i)*(x_predic(:,i)+ K (:,:,i)*(y(:,j)- Z_predic(:,i)));
+            %Stima a Priori X(k|k)
+            a=x_predic(:,i)+ K(:,:,i)*(y(:,j)- Z_predic(:,i));
+            
+            x_filter2=x_filter2+BeTa(j,i)*(a);
         end
-        x_filter2=U(j+1,i)*x_predic(:,i)+x_filter2;
+        %Aggiungo il Fattore BeTa0
+        x_filter2=BeTa(j+1,i)*x_predic(:,i)+x_filter2;
         x_filter(:,i,t)=x_filter2;
+        
+        a=0;
         for j=1:m1+1
             if j==m1+1
+                %Caso di Associazione a Clutter
                 a=x_predic(:,i);
             else
+                %Caso di Associazione a TRACK
+                
                a=x_predic(:,i)+ K (:,:,i)*(y(:,j)- Z_predic(:,i));
             end
-            b=b+U(j,i)*(a*a'-x_filter2*x_filter2');
+            
+            Pk=Pk+BeTa(j,i)*(a*a'-x_filter2*x_filter2');
         end
+        
+        %Update della MAtrice di Covarianza: manca Pk
         P(:,:,i)=P(:,:,i)+b; 
+        
         x_filter1(:,i,t,M)=x_filter(:,i,t);   
     end
-    end
-    end
+end % tempo
+
+end %Simulazioni
 
     %%%%%%%%%%%%%%%%%%
     %%%%%%%%%%%%%%%%%%
-    %%%%%  UPDATE
+    %%%%%  Valore Medio sulle simulazioni
     %%%%%%%%%%%%%%%%%%
     %%%%%%%%%%%%%%%%%%
     x_filter=sum(x_filter1,4)/MC_number;                                               %�˲�ֵ��ƽ��
     %%%%%%%%%%%%%%%%%%%%
-    %%%  1.�˲����  %%%
+    %%%  1.Visualizzazione
     %%%%%%%%%%%%%%%%%%%%
     figure;
-    %Ŀ��a,b�Ĺ۲�λ��
+    % 
     for i=1:c
         a=zeros(1,n);
         b=zeros(1,n);
@@ -428,9 +513,9 @@ for t=1:n
             b(j)=data_measurement(i,2,j);
         end
         if i==1
-           plot(a(:),b(:),'b:')
+           plot(a(:),b(:),'bo')
         else 
-           plot(a(:),b(:),'b:')
+           plot(a(:),b(:),'bo')
         end
         hold on;
 end
@@ -451,17 +536,18 @@ for i=1:c
         a(j)=x_filter(1,i,j);
         b(j)=x_filter(3,i,j);
     end
-if i==1
-    plot(a(:),b(:),'r-');
-else 
-    plot(a(:),b(:),'r-');
-end
+    if i==1
+        plot(a(:),b(:),'r-');
+    else 
+        plot(a(:),b(:),'r-');
+    end
 hold on;
 end
 xlabel('x/m'),ylabel('y/m');
-legend('Ŀ��a�Ĺ۲�λ��','Ŀ��b�Ĺ۲�λ��','Ŀ��a���Ӳ�','Ŀ��b���Ӳ�','Ŀ��a�Ĺ���λ��','Ŀ��b�Ĺ���λ��',4);grid;
+legend('Track1','Track2','Misure','Misure','Track1 Ricostruita','Track1 Ricostruita',4);grid;
 %%%%%%%%%%%%%%%%%%%%
-%%%  2.�ٶ����  %%%
+%%%  Visualizzo l'Errore Medio Tra Stima dello Stato Prodotto dal Sistema e
+%%%  STATO del Sistema ESATTO (che cerco di ricostruire)
 %%%%%%%%%%%%%%%%%%%%
 figure;
 a=0;
@@ -473,24 +559,9 @@ for j=1:n
     end
         c1(1,j)=sqrt(c1(1,j)/MC_number);
 end
-temp=c1(1,:);
-a_extra=zeros(2,n);
-b_extra=zeros(1,n);
-c_extra=zeros(1,n);
-a_extra(1,:)=temp;
-a_extra(2,:)=1:1:n;
-b_extra=a_extra(1,:);
-[c_extra,pos]=sort(b_extra);                                                       %posΪ�������±�,cΪ��һ�е�������;
-a_extra(2,:)=a_extra(2,pos);                                                       %�ڶ��а��յ�һ��������±��Ӧ
-a_extra(1,:)=c_extra;                                                              %��һ�н�����¸���a �ĵ�һ��;
-str1=num2str(a_extra(2,n));
-str2=num2str(a_extra(1,n));
-str=strcat('\itN=',str1,'\itError=',str2,'(m)');
-text(a_extra(2,n),0.8*a_extra(1,n),str);
-hold on;
-plot([a_extra(2,n) a_extra(2,n)],[0 a_extra(1,n)],'r');
-hold on;
-plot(1:n,c1(1,:),'r:') 
+ 
+plot(1:n,c1(1,:),'r-') 
+
 hold on;
 a=0;
 for j=1:n
@@ -500,52 +571,10 @@ for j=1:n
     end
         c1(2,j)=sqrt(c1(2,j)/MC_number);
 end
-temp=c1(2,:);
-a_extra=zeros(2,n);
-b_extra=zeros(1,n);
-c_extra=zeros(1,n);
-a_extra(1,:)=temp;
-a_extra(2,:)=1:1:n;
-b_extra=a_extra(1,:);
-[c_extra,pos]=sort(b_extra);                                                       %posΪ�������±�,cΪ��һ�е�������;
-a_extra(2,:)=a_extra(2,pos);                                                       %�ڶ��а��յ�һ��������±��Ӧ
-a_extra(1,:)=c_extra;                                                              %��һ�н�����¸���a �ĵ�һ��;
-str1=num2str(a_extra(2,n));
-str2=num2str(a_extra(1,n));
-str=strcat('\itN=',str1,'\itError=',str2,'(m)');
-text(a_extra(2,n),0.8*a_extra(1,n),str);
-hold on;
-plot([a_extra(2,n) a_extra(2,n)],[0 a_extra(1,n)],'b');
-hold on;
-plot(1:n,c1(2,:),'b:') 
-xlabel('times'),ylabel('����ֵ�����ֵ���/m');
-legend('Ŀ��a��������ֵ','Ŀ��a�����','Ŀ��b��������ֵ','Ŀ��b�����');grid;
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%  Revised on 26th June 2008 by wangzexun  %%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-figure;
-extra11=zeros(1,n);
-extra12=zeros(1,n);
-extra13=zeros(1,n);
-for j=1:n
-    extra11(1,j)=sqrt(x_filter(1,1,j)-data_measurement1(1,1,j))^2+(x_filter(3,1,j)-data_measurement1(1,3,j))^2;
-    extra12(1,j)=sqrt((data_measurement(1,1,j)-data_measurement1(1,1,j))^2+(data_measurement(1,2,j)-data_measurement1(1,3,j))^2);
-    extra13(1,j)=extra12(1,j)/extra11(1,j);
-end
-plot(1:n,extra13(1,:),'k:'); 
-xlabel('times'),ylabel('RMSE of a');
+ 
+plot(1:n,c1(2,:),'b-') 
+xlabel('X_{est}(t)'),ylabel('ErroreMedio(X_{est}(t)-X(t))');
+legend('Errore Ricostruzione Track1','Errore Ricostruzione Track2'  );
 grid;
 
-figure;
-extra21=zeros(1,n);
-extra22=zeros(1,n);
-extra23=zeros(1,n);
-for j=1:n
-    extra21(1,j)=sqrt(x_filter(1,2,j)-data_measurement1(2,1,j))^2+(x_filter(3,2,j)-data_measurement1(2,3,j))^2;
-    extra22(1,j)=sqrt((data_measurement(2,1,j)-data_measurement1(2,1,j))^2+(data_measurement(2,2,j)-data_measurement1(2,3,j))^2);
-    extra23(1,j)=extra22(1,j)/extra21(1,j);
-end
-plot(1:n,extra23(1,:),'k:'); 
-xlabel('times'),ylabel('RMSE of b');
-grid;
+ 
