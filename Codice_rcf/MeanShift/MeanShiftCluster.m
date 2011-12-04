@@ -1,124 +1,149 @@
-function [clustCent,data2cluster,cluster2dataCell] = MeanShiftCluster(dataPts,bandWidth,plotFlag);
-%perform MeanShift Clustering of data using a flat kernel
+%Esempio del Mean Shift CLUSTERING
 %
-% ---INPUT---
-% dataPts           - input data, (numDim x numPts)
-% bandWidth         - is bandwidth parameter (scalar)
-% plotFlag          - display output if 2 or 3 D    (logical)
-% ---OUTPUT---
-% clustCent         - is locations of cluster centers (numDim x numClust)
-% data2cluster      - for every data point which cluster it belongs to (numPts)
-% cluster2dataCell  - for every cluster which points are in it (numClust)
-% 
-% Bryan Feldman 02/24/06
-% MeanShift first appears in
-% K. Funkunaga and L.D. Hosteler, "The Estimation of the Gradient of a
-% Density Function, with Applications in Pattern Recognition"
+%Genero dei punti da una Mistura di gaussiane 2D
+clc;clear;close all;
+mu1 = [20 20];
+mu2 = [ 30 10];
+SIGMA1 = [10  0.5;
+          0.5 4];
+
+SIGMA2 = [10 -0.6;
+          -0.6 8 ];
+      
+Npoints=100;
+Xi =[ mvnrnd(mu1,SIGMA1,Npoints);
+      mvnrnd(mu2,SIGMA2,Npoints)];
+Xi=Xi.';
+Npoints=2*Npoints;
+
+%Etichette da assegnare ai Punti
+Labels=zeros(1,Npoints);
+
+%Disegno  il punto iniziale
+plot(Xi(1,:),Xi(2,:),'+');hold on;
+
+%Disegno le Mode della distribuzione
+plot(mu1(1),mu1(2),'*r');
+plot(mu2(1),mu2(2),'*r');
+
+syms x y;
+Z=[x;y]
+%f=exp(-x^2/2);
+%df=diff(f,'x')
+
+g=@(x)0.5*(exp(-(x^2)));
+h=6;
+
+%Eseguo T iterazioni per vedere dove va il Mean shift
+T=50;
+t=2;
+ 
+Xp=zeros(2,T);
+%Salvo la lista dei Punti Visitati
+
+NVPoints=1:Npoints;
 
 
-%*** Check input ****
-if nargin < 2
-    error('no bandwidth specified')
-end
+Soglia=10^-2;
+I=1;
 
-if nargin < 3
-    plotFlag = true;
-    plotFlag = false;
-end
+%Numero Mode
+NModes=0;
+Modes=[];
+while isempty(NVPoints)==0
+    
+    %% Mean Shift sul singolo punto X
+    
+    %Ottieni il punto iniziale dall'insieme dei punti non ancora visitati.
+    Xindex=NVPoints(1);
+    X=Xi(:,Xindex);
+    %plot(X(1),X(2),'og');hold on
 
-%**** Initialize stuff ***
-[numDim,numPts] = size(dataPts);
-numClust        = 0;
-bandSq          = bandWidth^2;
-initPtInds      = 1:numPts;
-maxPos          = max(dataPts,[],2);       %biggest size in each dimension
-minPos          = min(dataPts,[],2);       %smallest size in each dimension
-boundBox        = maxPos-minPos;           %bounding box size
-sizeSpace       = norm(boundBox);          %indicator of size of data space
-stopThresh      = 1e-3*bandWidth;          %when mean has converged
-clustCent       = [];                                   %center of clust
-beenVisitedFlag = zeros(1,numPts,'uint8');              %track if a points been seen already
-numInitPts      = numPts;                               %number of points to posibaly use as initilization points
-clusterVotes    = zeros(1,numPts,'uint16');             %used to resolve conflicts on cluster membership
+    % Valore Iniziale per il criterio  di Arresto
+    E=10;
+    
+    %Punti Visitati
+    VPoints=[];
+    
+    %t: Numero di Iterazioni
+    t=2;
+    Xp=X;
+    
+    while t< T &&  E > Soglia
+       %Calcolo il Mean Shift Vector
+       Circ= (Z-X).'*(Z-X)-h^2;
+       %ezplot(Circ,[-10^2 10^2])
+       
+       %Cerco i punti che cadono nell'IperSfera Centrata in X
+       Sx=[];
+       Nx=0; 
 
+       for i=1:Npoints
+            if (X-Xi(:,i)).'*(X-Xi(:,i))< h^2
+                %Insieme dei Pixel che cadono nell'intorno
+                Sx=[Sx Xi(:,i)];
+                Nx=Nx+1;
+                %indici dei punti visitati
+                VPoints=union(VPoints,i);
+            end        
+       end
 
-while numInitPts
+       X=repmat(X,1,Nx);
+       %Il mean shift è un Media Locale
+       MeanShift(:,t)=sum(Sx-X,2)/Nx;
+       %Fhu=Nx/(N*h^2*pi);
 
-    tempInd         = ceil( (numInitPts-1e-6)*rand);        %pick a random seed point
-    stInd           = initPtInds(tempInd);                  %use this point as start of mean
-    myMean          = dataPts(:,stInd);                           % intilize mean to this points location
-    myMembers       = [];                                   % points that will get added to this cluster                          
-    thisClusterVotes    = zeros(1,numPts,'uint16');         %used to resolve conflicts on cluster membership
-
-    while 1     %loop untill convergence
-        
-        sqDistToAll = sum((repmat(myMean,1,numPts) - dataPts).^2);    %dist squared from mean to all points still active
-        inInds      = find(sqDistToAll < bandSq);               %points within bandWidth
-        thisClusterVotes(inInds) = thisClusterVotes(inInds)+1;  %add a vote for all the in points belonging to this cluster
-        
-        
-        myOldMean   = myMean;                                   %save the old mean
-        myMean      = mean(dataPts(:,inInds),2);                %compute the new mean
-        myMembers   = [myMembers inInds];                       %add any point within bandWidth to the cluster
-        beenVisitedFlag(myMembers) = 1;                         %mark that these points have been visited
-        
-        %*** plot stuff ****
-        if plotFlag
-            figure(12345),clf,hold on
-            if numDim == 2
-                plot(dataPts(1,:),dataPts(2,:),'.')
-                plot(dataPts(1,myMembers),dataPts(2,myMembers),'ys')
-                plot(myMean(1),myMean(2),'go')
-                plot(myOldMean(1),myOldMean(2),'rd')
-                pause
-            end
-        end
-
-        %**** if mean doesn't move much stop this cluster ***
-        if norm(myMean-myOldMean) < stopThresh
-            
-            %check for merge posibilities
-            mergeWith = 0;
-            for cN = 1:numClust
-                distToOther = norm(myMean-clustCent(:,cN));     %distance from posible new clust max to old clust max
-                if distToOther < bandWidth/2                    %if its within bandwidth/2 merge new and old
-                    mergeWith = cN;
-                    break;
-                end
-            end
-            
-            
-            if mergeWith > 0    % something to merge
-                clustCent(:,mergeWith)       = 0.5*(myMean+clustCent(:,mergeWith));             %record the max as the mean of the two merged (I know biased twoards new ones)
-                %clustMembsCell{mergeWith}    = unique([clustMembsCell{mergeWith} myMembers]);   %record which points inside 
-                clusterVotes(mergeWith,:)    = clusterVotes(mergeWith,:) + thisClusterVotes;    %add these votes to the merged cluster
-            else    %its a new cluster
-                numClust                    = numClust+1;                   %increment clusters
-                clustCent(:,numClust)       = myMean;                       %record the mean  
-                %clustMembsCell{numClust}    = myMembers;                    %store my members
-                clusterVotes(numClust,:)    = thisClusterVotes;
-            end
-
-            break;
-        end
-
+       %Nuovo Punto
+       Xp(:,t)=MeanShift(:,t)+Xp(:,t-1);
+       E=norm(Xp(:,t)-Xp(:,t-1),2);
+       
+       %Punto Iniziale Shiftato: al termine del ciclo è la MODA
+       X=Xp(:,t);
+       
+       %Traiettoria generata durante la Procedura di Shifting verso la Moda
+       %plot(Xp(1,1:t),Xp(2,1:t),'og-');
+       t=t+1;
     end
     
-    
-    initPtInds      = find(beenVisitedFlag == 0);           %we can initialize with any of the points not yet visited
-    numInitPts      = length(initPtInds);                   %number of active points in set
-
-end
-
-[val,data2cluster] = max(clusterVotes,[],1);                %a point belongs to the cluster with the most votes
-
-%*** If they want the cluster2data cell find it for them
-if nargout > 2
-    cluster2dataCell = cell(numClust,1);
-    for cN = 1:numClust
-        myMembers = find(data2cluster == cN);
-        cluster2dataCell{cN} = myMembers;
+    %Aggiorna l' insieme dei Punti NON VISITATI
+    NVPoints=setdiff(NVPoints,VPoints);
+    %plot(Xi(1,VPoints),Xi(2,VPoints),'+m');
+     
+    %Definizione delle Mode
+    if isempty(Modes)
+        Modes=X;
+        NModes=NModes+1;
+        LabelIndex=1;
+    else
+        %Cerco la Moda più vicina al volore cui ho avuto Convergenza
+        for i=1:NModes
+            Res(i)=norm(X-Modes(:,i),2);
+        end
+        %calcolo la moda + vicna e l'assegno
+        [val,j]=min(Res);
+        
+        if(val<=h)
+            %Moda già trovata
+            LabelIndex=j;
+        else
+            %Nuova Moda
+            NModes=NModes+1;
+            %Aggiungo la Nuova Moda alla lista delle Mode
+            Modes=[Modes X];
+            %Label della Nuova Moda
+            LabelIndex=NModes;
+        end
     end
+    
+    %Setta tutti i punti visitati col valore della Moda trovata
+    Label(VPoints)=LabelIndex;
+  
+    
 end
 
-
+for i=1:NModes
+    [j]=find(Label==i);
+    colore=rand(3,1);
+    colore=colore/sum(colore);
+    plot(Xi(1,j),Xi(2,j),'+','color',colore)
+end
