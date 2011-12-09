@@ -12,6 +12,8 @@ colorZ=[0 0 1];
 Vettore3D(Aw(1,1),Aw(2,1),Aw(3,1),colorX,1) %X in red
 Vettore3D(Aw(1,2),Aw(2,2),Aw(3,2),colorY,1) %Z in green
 Vettore3D(Aw(1,3),Aw(2,3),Aw(3,3),colorZ,1) %Y in blue
+plot3(0,0,0,'oy','MarkerFaceColor','y','MarkerEdgeColor','y','MarkerSize',5);
+
 xlabel('X')
 ylabel('Y')
 zlabel('Z') 
@@ -67,18 +69,31 @@ Vettore3D(N(1),N(2),N(3),colorX,1)
 %il punto per il quale esso passa (T)
 % Calcolo i generatori
 Ac=null(N.');
-Ac=[70*Ac -N/3];
+Ac=[Ac -N/norm(N)];
 % Disegno il piano passante per T di generatori V
-% DisegnaPiano(V(:,1),V(:,2),T)
+% DisegnaPiano(Ac(:,1),Ac(:,2),T)
 Vettore3D_Applicato(T,Ac(1,1),Ac(2,1),Ac(3,1),colorX)
 Vettore3D_Applicato(T,Ac(1,2),Ac(2,2),Ac(3,2),colorY)
 Vettore3D_Applicato(T,Ac(1,3),Ac(2,3),Ac(3,3),colorZ)
+% Verifico che la Rotazione Rw2c ruota gli assi nel mondo allineandoli con
+% quelli della Camera
+%Vettore3D(Ac(1,1),Ac(2,1),Ac(3,1),colorX,1)
+%Vettore3D(Ac(1,2),Ac(2,2),Ac(3,2),colorY,1)
+%Vettore3D(Ac(1,3),Ac(2,3),Ac(3,3),colorZ,1)
+%Considero i Punti in CORDINATE MONDO sugli assi del Piano Focale
+Ac1=Ac+repmat(T,1,3);
 
+plot3(Ac1(1,1),Ac1(2,1),Ac1(3,1),'or','MarkerFaceColor','r','MarkerEdgeColor','r','MarkerSize',5);
+plot3(Ac1(1,2),Ac1(2,2),Ac1(3,2),'og','MarkerFaceColor','g','MarkerEdgeColor','g','MarkerSize',5);
+plot3(Ac1(1,3),Ac1(2,3),Ac1(3,3),'ob','MarkerFaceColor','b','MarkerEdgeColor','b','MarkerSize',5);
 %Recupero la Matrice di Rotazione che Lega i Sistemi di Riferimento
 % imponendo che:
 % - l' asse Z sia concidente con N
 % - l' asse X sia l'asse Orizzontale del piano immagine
 % - l' asse Y sia l'asse Verticale del piano immagine
+%                    -1
+%   Zc=R*Zw+T   --> R  (Zc-T)=Zw
+%
 Rw2c=Ac;
 
 %ROTAZIONE CAMERA TO MONDO
@@ -86,29 +101,31 @@ Rc2w=inv(Rw2c);
 
 %Disegno gli assi nel SISTEMA di riferimento CAMERA trasformando i
 %corrispettivi nel SISTEMA MONDO
-figure(2)
+figure(2);hold on
 title('CAMERA REFERENCE SYSTEM')
-Ac1=[1  0 0
-     0 -1 0 
-     0  0 1];
-%Sistema di Riferimento Mondo centrato nell'origine
-Vettore3D(Ac1(1,1),Ac1(2,1),Ac1(3,1),colorX,2) %X in red
-Vettore3D(Ac1(1,2),Ac1(2,2),Ac1(3,2),colorY,2) %Z in green
-Vettore3D(Ac1(1,3),Ac1(2,3),Ac1(3,3),colorZ,2) %Y in blue
 
-%Rappresento Il sistema di Riferimento Mondo rispetto alla Telecamera
-% applicando la traslazione -T e la ROTAZIONE inversa s 
-Atmp=Aw;
-Aw1=Rc2w*Atmp;
-figure(2);
-title('CAMERA REFERENCE SYSTEM')
-Vettore3D(Aw1(1,1),Aw1(2,1),Aw1(3,1),colorX,2)
-Vettore3D(Aw1(1,2),Aw1(2,2),Aw1(3,2),colorY,2)
-Vettore3D(Aw1(1,3),Aw1(2,3),Aw1(3,3),colorZ,2)
+%Considero gli Assi del sistema di RIFERIMENTO
+Ac1=Rw2c+repmat(T,1,3);
+plot3(Ac1(1,1),Ac1(2,1),Ac1(3,1),'or','MarkerFaceColor','r','MarkerEdgeColor','r','MarkerSize',5);
+plot3(Ac1(1,2),Ac1(2,2),Ac1(3,2),'og','MarkerFaceColor','g','MarkerEdgeColor','g','MarkerSize',5);
+plot3(Ac1(1,3),Ac1(2,3),Ac1(3,3),'ob','MarkerFaceColor','b','MarkerEdgeColor','b','MarkerSize',5);
+
+%Vettori applicati all'origine senza Traslare
+Vettore3D(Ac(1,1),Ac(2,1),Ac(3,1),colorX,2)
+Vettore3D(Ac(1,2),Ac(2,2),Ac(3,2),colorY,2)
+Vettore3D(Ac(1,3),Ac(2,3),Ac(3,3),colorZ,2)
+%Assi del Sistema di riferimento Camera
+Vettore3D_Applicato(T,Ac(1,1),Ac(2,1),Ac(3,1),colorX)
+Vettore3D_Applicato(T,Ac(1,2),Ac(2,2),Ac(3,2),colorY)
+Vettore3D_Applicato(T,Ac(1,3),Ac(2,3),Ac(3,3),colorZ)
+
+%Disegno l'origine
+plot3(T(1),T(2),T(3),'oy','MarkerFaceColor','y','MarkerEdgeColor','y','MarkerSize',5);
 
 %Disegno il punto Zw nel sistema di riferimento CAMERA
-Ztmp=Zw-T;
-Zc=Rw2c*Ztmp;
+Zc=Rw2c*Zw+T;
 plot3(Zc(1),Zc(2),Zc(3),'or','MarkerFaceColor','b','MarkerEdgeColor','b','MarkerSize',5);
+
+title('CAMERA REFERENCE SYSTEM')
 
 
