@@ -1,0 +1,269 @@
+#include <math.h>
+#include <memory.h>
+#include <stdio.h>
+#include <string.h>
+#include "mex.h"
+#include "matrixwg.h"
+#include "matrix.h"
+
+#define DEBUG_ON 0
+#define WEIGHT_FACTOR   5
+
+#if DEBUG_ON
+#define DBGPRINT printf
+#else
+#define DBGPRINT
+#endif
+
+#define sqr(x)  (x)*(x)
+#define getMatrixAddr(r, c, rsize) r + (c * rsize)
+#define getTensorAddr(i, j, k, rsize, csize) i + (j * rsize) + (k * rsize * csize)
+#define NUMINTERACTION 3
+#define min(x, y)   (x < y)? x:y
+#define max(x, y)   (x > y)? x:y
+#define EPS         1e-200
+
+void mexFunction( int nlhs, mxArray *plhs[], 
+		  int nrhs, const mxArray*prhs[] )
+     
+{ 
+    if(nrhs == 4);
+    else{
+		printf("Invalid number of inputs %d\n",nrhs);
+		return;
+	}
+    const mxArray *sample = prhs[0];
+    const mxArray *tsample = prhs[1];
+    int tid = (int)mxGetScalar(prhs[2]) - 1;
+    const mxArray *params = prhs[3];
+    const mxArray *field_array_ptr;
+    
+    double c1_pair, c2_pair, i1_pair, i2_pair, lr1_pair, lr2_pair, lg1_pair, lg2_pair;
+    double *beta, *per;
+    double *tbeta, *tper;
+    
+    msize sper, sbeta, temp;
+    
+    field_array_ptr = mxGetField(sample, 0, "per");
+    if(field_array_ptr){
+        per = (double*)mxGetData(field_array_ptr);
+        sper.nrows = mxGetM(field_array_ptr);
+        sper.ncols = mxGetN(field_array_ptr);
+        DBGPRINT("per(1,1) = %.03f, (%d, %d)\n", *per, sper.nrows, sper.ncols);
+    }
+    else
+    {
+        printf("ERROR : No field named per!!\n");
+        return;
+    }
+    field_array_ptr = mxGetField(sample, 0, "beta");
+    if(field_array_ptr){
+        beta = (double*)mxGetData(field_array_ptr);
+        sbeta.nrows = mxGetM(field_array_ptr);
+        sbeta.ncols = mxGetN(field_array_ptr);
+        DBGPRINT("beta(1,1) = %d (%d, %d)\n", (*beta), sbeta.nrows, sbeta.ncols);
+        if (sbeta.ncols / sbeta.nrows != NUMINTERACTION)
+        {
+            printf("Invalid beta matrix!!!");
+            return;
+        }
+    }
+    else
+    {
+        printf("ERROR : No field named beta!!\n");
+        return;
+    }
+    field_array_ptr = mxGetField(tsample, 0, "per");
+    if(field_array_ptr){
+        tper = (double*)mxGetData(field_array_ptr);
+        temp.nrows = mxGetM(field_array_ptr);
+        temp.ncols = mxGetN(field_array_ptr);
+        DBGPRINT("tper(1,1) = %.03f, (%d, %d)\n", *tper, temp.nrows, temp.ncols);
+    }
+    else
+    {
+        printf("ERROR : No field named per!!\n");
+        return;
+    }
+    field_array_ptr = mxGetField(tsample, 0, "beta");
+    if(field_array_ptr){
+        tbeta = (double*)mxGetData(field_array_ptr);
+        temp.nrows = mxGetM(field_array_ptr);
+        temp.ncols = mxGetN(field_array_ptr);
+        DBGPRINT("beta(1,1) = %d (%d, %d)\n", (*tbeta), temp.nrows, temp.ncols);
+        if (sbeta.ncols / sbeta.nrows != NUMINTERACTION)
+        {
+            printf("Invalid beta matrix!!!");
+            return;
+        }
+    }
+    else
+    {
+        printf("ERROR : No field named beta!!\n");
+        return;
+    }
+    field_array_ptr = mxGetField(params, 0, "c1_pair");
+    if(field_array_ptr){
+        c1_pair = (double)mxGetScalar(field_array_ptr);
+        DBGPRINT("c1_pair = %f\n", c1_pair);
+    }
+    else
+    {
+        printf("ERROR : No field named c1_pair!!\n");
+        return;
+    }
+    field_array_ptr = mxGetField(params, 0, "c2_pair");
+    if(field_array_ptr){
+        c2_pair = (double)mxGetScalar(field_array_ptr);
+        DBGPRINT("c2_pair = %f\n", c2_pair);
+    }
+    else
+    {
+        printf("ERROR : No field named c2_pair!!\n");
+        return;
+    }
+    field_array_ptr = mxGetField(params, 0, "i1_pair");
+    if(field_array_ptr){
+        i1_pair = (double)mxGetScalar(field_array_ptr);
+        DBGPRINT("i1_pair = %f\n", i1_pair);
+    }
+    else
+    {
+        printf("ERROR : No field named i1_pair!!\n");
+        return;
+    }
+    field_array_ptr = mxGetField(params, 0, "i2_pair");
+    if(field_array_ptr){
+        i2_pair = (double)mxGetScalar(field_array_ptr);
+        DBGPRINT("i2_pair = %f\n", i2_pair);
+    }
+    else
+    {
+        printf("ERROR : No field named i2_pair!!\n");
+        return;
+    }
+    field_array_ptr = mxGetField(params, 0, "lr1_pair");
+    if(field_array_ptr){
+        lr1_pair = (double)mxGetScalar(field_array_ptr);
+        DBGPRINT("lr1_pair = %f\n", lr1_pair);
+    }
+    else
+    {
+        printf("ERROR : No field named lr1_pair!!\n");
+        return;
+    }
+    field_array_ptr = mxGetField(params, 0, "lr2_pair");
+    if(field_array_ptr){
+        lr2_pair = (double)mxGetScalar(field_array_ptr);
+        DBGPRINT("lr2_pair = %f\n", lr2_pair);
+    }
+    else
+    {
+        printf("ERROR : No field named lr2_pair!!\n");
+        return;
+    }
+    field_array_ptr = mxGetField(params, 0, "lg1_pair");
+    if(field_array_ptr){
+        lg1_pair = (double)mxGetScalar(field_array_ptr);
+        DBGPRINT("lg1_pair = %f\n", lg1_pair);
+    }
+    else
+    {
+        printf("ERROR : No field named lg1_pair!!\n");
+        return;
+    }
+    field_array_ptr = mxGetField(params, 0, "lg2_pair");
+    if(field_array_ptr){
+        lg2_pair = (double)mxGetScalar(field_array_ptr);
+        DBGPRINT("lg2_pair = %f\n", lg2_pair);
+    }
+    else
+    {
+        printf("ERROR : No field named lg2_pair!!\n");
+        return;
+    }
+    
+    plhs[0] = mxCreateDoubleScalar(1);
+    double *prob = (double*)mxGetData(plhs[0]);
+    
+    for(int i = 0; i < sper.ncols; i++) {
+        if (i==tid) continue;
+        int idInt = -1, rid, cid;
+        rid = min(tid, i);
+        cid = max(tid, i);
+        DBGPRINT("Interaction btw (%d, %d)\n", rid, cid);
+        if (*(per + getMatrixAddr(5, tid, sper.nrows)) == 0 || *(per + getMatrixAddr(5, i, sper.nrows)) == 0) {
+            *prob *= c1_pair;
+        }
+        else {
+            double r;
+            for(int j = 0; j < NUMINTERACTION; j++) {
+                DBGPRINT("(%d %d %d) %f\n", rid, cid, j, *(beta + getTensorAddr(rid, cid, j, sbeta.nrows, sbeta.nrows)));
+                if (*(beta + getTensorAddr(rid, cid, j, sbeta.nrows, sbeta.nrows)) == 1) {
+#if DEBUG_ON
+                    if (idInt > -1) {
+                        DBGPRINT("ERROR MORE THAN TWO INTERACTIONS are set at the same time\n");
+                    }                        
+#endif
+                    idInt = j;
+                }                    
+            }
+            
+            switch(idInt) {
+                case 0: 
+                    *prob *= c2_pair;
+                    break;
+                case 1:
+//                     r = sqrt(sum((per(1:2, tid) - sample.per(1:2, j)).^2));
+                    r = sqr(*(per + getMatrixAddr(0, tid, sper.nrows)) - *(per + getMatrixAddr(0, i, sper.nrows))) + sqr(*(per + getMatrixAddr(1, tid, sper.nrows)) - *(per + getMatrixAddr(1, i, sper.nrows)));
+                    r = sqrt(r);
+                    *prob *= ((1 / (1 + exp(i1_pair * (r - i2_pair)))) * lr1_pair * exp(-1/(lr2_pair * r)) + EPS);
+                    break;
+                case 2:
+                    r = sqr(*(per + getMatrixAddr(2, tid, sper.nrows)) - *(per + getMatrixAddr(2, i, sper.nrows))) + sqr(*(per + getMatrixAddr(3, tid, sper.nrows)) - *(per + getMatrixAddr(3, i, sper.nrows)));
+                    *prob *= ((1/(1+exp(i1_pair * (r - i2_pair)))) * lg1_pair * exp(-lg2_pair * r) + EPS);
+                    break;
+                default : DBGPRINT("ERROR No INTERACTION is defined\n");
+                    break;
+            }
+        }
+        
+        
+        if (*(tper + getMatrixAddr(5, tid, sper.nrows)) == 0 || *(tper + getMatrixAddr(5, i, sper.nrows)) == 0) {
+            *prob /= c1_pair;
+        }
+        else {
+            double r;
+            for(int j = 0; j < NUMINTERACTION; j++) {
+                DBGPRINT("(%d %d %d) %f\n", rid, cid, j, *(tbeta + getTensorAddr(rid, cid, j, sbeta.nrows, sbeta.nrows)));
+                if (*(tbeta + getTensorAddr(rid, cid, j, sbeta.nrows, sbeta.nrows)) == 1) {
+#if DEBUG_ON
+                    if (idInt > -1) {
+                        DBGPRINT("ERROR MORE THAN TWO INTERACTIONS are set at the same time\n");
+                    }                        
+#endif
+                    idInt = j;
+                }                    
+            }
+            
+            switch(idInt) {
+                case 0: 
+                    *prob /= c2_pair;
+                    break;
+                case 1:
+//                     r = sqrt(sum((per(1:2, tid) - sample.per(1:2, j)).^2));
+                    r = sqr(*(tper + getMatrixAddr(0, tid, sper.nrows)) - *(tper + getMatrixAddr(0, i, sper.nrows))) + sqr(*(tper + getMatrixAddr(1, tid, sper.nrows)) - *(tper + getMatrixAddr(1, i, sper.nrows)));
+                    r = sqrt(r);
+                    *prob /= ((1 / (1 + exp(i1_pair * (r - i2_pair)))) * lr1_pair * exp(-1/(lr2_pair * r)) + EPS);
+                    break;
+                case 2:
+                    r = sqr(*(tper + getMatrixAddr(2, tid, sper.nrows)) - *(tper + getMatrixAddr(2, i, sper.nrows))) + sqr(*(tper + getMatrixAddr(3, tid, sper.nrows)) - *(tper + getMatrixAddr(3, i, sper.nrows)));
+                    *prob /= ((1/(1+exp(i1_pair * (r - i2_pair)))) * lg1_pair * exp(-lg2_pair * r) + EPS);
+                    break;
+                default : DBGPRINT("ERROR No INTERACTION is defined\n");
+                    break;
+            }
+        }
+    }
+    return; 
+}
