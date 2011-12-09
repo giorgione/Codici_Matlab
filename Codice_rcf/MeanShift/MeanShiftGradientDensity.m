@@ -2,13 +2,13 @@
 %
 %Genero dei punti da una Mistura di gaussiane 2D
 clc;clear;close all;
-mu1 = [2 3];
+mu1 = [12 13];
 mu2 = [ 30 10];
 SIGMA1 = [10  0.5;
-          0.5 3];
+          0.5 13];
 SIGMA2 = [10 -0.6;
-          -0.6 8 ];
-Npoints=100;
+          -0.6 18 ];
+Npoints=150;
 Xi =[ mvnrnd(mu1,SIGMA1,Npoints) ;mvnrnd(mu2,SIGMA2,Npoints)];
 Xi=Xi.';
 Npoints=2*Npoints;

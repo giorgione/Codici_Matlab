@@ -21,7 +21,7 @@
 %
 % author: Giorgio Gemignani
 
-function Vettore3D(x,y,z,colore)
+function Vettore3D(x,y,z,colore,figH)
 colormap(colore);
 %vertice iniziale del vettore
 P1=[0 0 0];
@@ -68,7 +68,7 @@ Ynew=newpunti(2,:);Ynew=reshape(Ynew,r,c);
 Znew=newpunti(3,:);Znew=reshape(Znew,r,c);
 
 % Disegna
-
+figure(figH);
 hold on;
 P=[P1;P2];
 x=P(:,1);
