@@ -77,10 +77,12 @@ Rc2w=inv(Rw2c);
 %attorno all' asse Y ed applicando la traslazione T
 Ac=Rw2c*Aw;
 Ac=Ac./4;
+w=10;
+h=8;
+DisegnaPiano(w*Ac(:,1)./norm(Ac(:,1)),h*Ac(:,3)./norm(Ac(:,3)),T)
 Vettore3D_Applicato(T,Ac(1,1),Ac(2,1),Ac(3,1),colorX)
 Vettore3D_Applicato(T,Ac(1,2),Ac(2,2),Ac(3,2),colorY)
 Vettore3D_Applicato(T,Ac(1,3),Ac(2,3),Ac(3,3),colorZ)
-DisegnaPiano(Ac(:,1),Ac(:,3),T)
 
 plot3(T(1),T(2),T(3),'or','MarkerFaceColor','b','MarkerEdgeColor','b','MarkerSize',5);
 Prj=[[0;0;0] T];
@@ -144,4 +146,4 @@ Vettore3D(Zc(1,2),Zc(2,2),Zc(3,2),colorY,2) %Z in green
 Vettore3D(Zc(1,3),Zc(2,3),Zc(3,3),colorZ,2) %Y in blue
 
 %Ruoto la Camera per vedere se si allinea al SISTEMA DI RIFERIMENTO MONDO
-RuotaPiano([0;0;10],[0;10;0],Ztemp,Rwc)
+RuotaPiano([0;0;10],[0;10;0],Ztemp,Rw2c)
