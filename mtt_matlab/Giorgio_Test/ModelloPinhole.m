@@ -156,6 +156,8 @@ Assi = [ 1   0  0;
 %Matrice di Rotazione che mi consente di disegnare la camera centrata
 %nell'origine
 R=Assi*inv(Ac);
+%Verifico che R ruota gli assi della camera e li dispone come richiesto
+% dal modello pinhole
 Ac=R*Ac;
 Vettore3D(Ac(1,1),Ac(2,1),Ac(3,1),colorX,1) %X in red
 Vettore3D(Ac(1,2),Ac(2,2),Ac(3,2),colorY,1) %Y in verde  
@@ -202,6 +204,7 @@ Prj=[Co1 CI1-AsseU+AsseV];
 line(Prj(1,:),Prj(2,:),Prj(3,:),'Color','b','LineStyle','-')
 Prj=[Co1 CI1-AsseU-AsseV];
 line(Prj(1,:),Prj(2,:),Prj(3,:),'Color','b','LineStyle','-')
+
 %Considero gli Assi del sistema MONDO trasformati nel nuovo sistema di
 %Riferimento
 %Ac1=Rc2w*(Aw-repmat(T,1,3));
