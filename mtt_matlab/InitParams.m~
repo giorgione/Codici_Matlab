@@ -169,7 +169,7 @@ elseif mode == 3
     params.mPertCam = 100;    % Perturbation CAMERA
     params.mPertPer = 16;     % Perturbation PERSON
     params.mPertCar = 25*4;   % Perturbation CAR
-    params.mPertGF = 4;       % Perturbation GROUND
+    params.mPertGF = 4;       % Perturbation  
 
     % Not Usefull
     params.useCamAnnealing = 0;%1;
@@ -177,8 +177,8 @@ elseif mode == 3
     
     % observation noise: MATRIX 3x3
     params.Qdet = diag([16 32 64]) * (2/4)^2;
-    %params.Qcardet = diag([6^2 4^2 10^2 4^2]) * (1/4)^2;
-    %params.Qcardet = diag([4^2 4^2 6^2 4^2]) * (1/4)^2;
+%     params.Qcardet = diag([6^2 4^2 10^2 4^2]) * (1/4)^2;
+%     params.Qcardet = diag([4^2 4^2 6^2 4^2]) * (1/4)^2;
    
     %Car detector noise: MATRIX 4x4
     params.Qcardet = diag([4^2 4^2 4^2 4^2]) * (1/4)^2;
@@ -253,7 +253,7 @@ end
 params.dt = dt;
 
 params.useInteraction = 1;
-%% INTERACTIONS PARAMETERS
+%%%%%% interaction parameters
 params.c1_pair = 0.9;
 params.i1_pair = 3;   % slope of the soft step
 params.i2_pair = 1.5; % threshold of the soft step
@@ -264,7 +264,7 @@ params.lg2_pair = 1/2 * 4^2; % 0.125...
 params.betatrns = 0.9 * eye(2) + 0.05 * ones(2,2); % transition of interactions
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%% Precompute normalization parameters!!!! for faster computation.
+% Precompute normalization parameters!!!! for faster computation.
 params.Prec1 = inv(params.Qdet);     % observation noise
 params.Prec2 = inv(params.Qktrack);  % ms track noise.
 params.CPrec = inv(params.Qcardet);  % observation noise
