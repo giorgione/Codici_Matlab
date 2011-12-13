@@ -7,7 +7,7 @@
 %                     
 %   - cam = [focal, height, xcenter, yhorizon, panning, absolute velocity,];
 % 
-%   - z = [x, z, vx, vz, heigth] --> 3D Point
+%   - z = [x, z, vx, vz, heigth] --> 3D Point in Camera System
 %
 % OUTPUT:
 % 
@@ -20,7 +20,9 @@
 %
 %          Rcw                            Rwc
 %           |                              |   -1
-%  Zw = R(theta)*Zc + T     <-->  Zc = R(theta)    (Zw-T)
+%  Zc = R(theta)*Zw + T     <-->  Zw = R(theta)    (Zc-T)    
+%                                             |
+%                                   (we work with this)
 %
 %  Rwc: WORLD COORDINATE to CAMERA COORDINATE Rotation Matrix  
 %            -1                                    -1
@@ -47,6 +49,7 @@ z(1:2) = R * z(1:2);
 % u = f*x/z + uo
 % v = f*y/z + vo   cam(2) = height = y of the classical pinhole model
 
+%Pixel coordinate unormalized
 x(1) = cam(1) / z(2) * z(1) + cam(3);
 x(2) = cam(1) / z(2) * cam(2) + cam(4);
 x(3) = cam(1) / z(2) * z(5);

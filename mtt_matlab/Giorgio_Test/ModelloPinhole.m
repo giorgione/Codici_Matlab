@@ -263,3 +263,5 @@ P=K*(Rw2c*P+repmat(T,1,m*n));
 u=P(1,:)./P(3,:);
 v=P(2,:)./P(3,:);
 plot(u,v,'ob','MarkerFaceColor','b','MarkerEdgeColor','b','MarkerSize',5)
+axis([0 w*ku 0 h*kv])
+axis ij

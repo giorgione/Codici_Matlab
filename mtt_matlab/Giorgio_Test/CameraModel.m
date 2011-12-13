@@ -1,41 +1,47 @@
-% syms r1 r2 r3 r4 r5 r6 r7 r8 r9 t1 t2 t3;
-% R=[ r1 r2 r3; r4 r5 r6; r7 r8 r9];
-% T=[t1  t2 t3].';
-% 
-% Z=[z1 z2 z3].';
-% Rt= [R zeros(3,1)];
-% Rt=[Rt ; [0 0 0 1]];
-% Zn=Rt*Z+T
+%Modello Camera adottato nel PAPER
 
-clc;close all
-syms f uc vc x y z yc tx
+clc;close all; clear
+ 
 
-X=[x y z 1].';
+K=@(f,uc,vc)[f 0 uc
+             0 f vc
+             0 0  1];
 
-K=[f 0 uc
-   0 f vc
-   0 0  1]./z;
 
-R=[1      0    0     ;   
-   0 cos(tx) -sin(tx);
-   0 sin(tx)  cos(tx)];
 
-T=[0 yc 0].';
+Rc2w =@(tx) [cos(tx)  sin(tx)  0; 
+            -sin(tx)  cos(tx)  0;
+                0          0   1];
+    
+Rw2c=@(tx)inv(Rc2w(tx));
 
-Estr=[R T];
+%World to Camera
+C2W=@(tx,Zc,T) Rc2w(tx)*(Zc-T);
 
-P=K*Estr*X;
-u=P(1);
-v=P(2);
+%Camera to World
+W2C=@(tx,Zw,T) Rw2c(tx)*Zw+T;
 
-pretty(simplify(u))
-pretty(simplify(v))
-pretty(simplify(P(3)))
-
+ProJ=@(Zw,f,uc,vc,tx,T) K(f,uc,vc )*W2C(tx,Zw,T) ;
+%Fisso i PARAMETRI INTRINSECI
+fo=1;
+Uo=10;
+Vo=10;
+w=20; ku=1;
+h=20;  kv=1;
+%PARAMETRI ESTRINSECI
+tx=pi/4;
+ 
+% Posizione del Centro Ottico C0
+Xt=80;
+Zt=80; %profondita
+Ht=0;  %altezza della camera
+T=[Xt Zt Ht].';
+CO=T;
+subplot(1,2,1); hold on
+plot3(T(1),T(2),T(3),'oy','MarkerFaceColor','y','MarkerEdgeColor','y','MarkerSize',5);
 
 %Assi Mondo
 Aw=100*eye(3);
-
 figure(1)
 plot3(0,0,0,'or','MarkerFaceColor','b','MarkerEdgeColor','b','MarkerSize',5);
 coloreM=[1 0 0];
@@ -46,54 +52,44 @@ colorZ=[0 0 1];
 Vettore3D(Aw(1,1),Aw(2,1),Aw(3,1),colorX,1) %X in red
 Vettore3D(Aw(1,2),Aw(2,2),Aw(3,2),colorY,1) %Z in green
 Vettore3D(Aw(1,3),Aw(2,3),Aw(3,3),colorZ,1) %Y in blue
+plot3(T(1),T(2),T(3),'oy','MarkerFaceColor','y','MarkerEdgeColor','y','MarkerSize',5);
 xlabel('X')
 ylabel('Y')
 zlabel('Z') 
 title('WORLD REFERENCE SYSTEM')
 
-%%   Distanza Camera - Origine Mondo
-%
-% la camera  e':
-%
-% TRASLATA di T rispetto al sistem a mondo
-%
-% RUOTATA di theta mediante R(theta) rispetto al sistema mondo (theta= pi/2)
-Xth=80;
-Zth=80;  %profondita
-Hth=0;  %altezza della camera
-T=[Xth Zth Hth].';
+%Fissato un angolo di Rotazione vado a vedere la relazione che intercorre
+%trai 2 sistemi di riferimento
+%Verifico che RW2C e' una ROTAZIONE sull' asse Z
+Ac=W2C(tx,Aw,repmat([0;0;0],1,3));
+%Sistema di Riferimento Mondo centrato nell'origine
+%Vettore3D(Ac(1,1),Ac(2,1),Ac(3,1),colorX,1) %X in red
+%Vettore3D(Ac(1,2),Ac(2,2),Ac(3,2),colorY,1) %Y in green
+%Vettore3D(Ac(1,3),Ac(2,3),Ac(3,3),colorZ,1) %Z in blue
 
-%Matrici di Rotazione tra Mondo e Camera
-
-%Matrice di Rotazione 2D 
-R=@(Theta)[ cos(Theta), -sin(Theta);
-            sin(Theta), cos(Theta)];
-%ROTAZIONE MONDO TO CAMERA        
-Rw2c=[R(pi/2) [0;0]; 0 0 1];
-%ROTAZIONE CAMERA TO MONDO
-Rc2w=inv(Rw2c);
-
-%Recupero gli Assi della Camera in coordinate Mondo applicando la ROTAZIONE
-%attorno all' asse Y ed applicando la traslazione T
-Ac=Rw2c*Aw;
-Ac=Ac./4;
-w=10;
-h=8;
-DisegnaPiano(w*Ac(:,1)./norm(Ac(:,1)),h*Ac(:,3)./norm(Ac(:,3)),T)
+%Disegno i Vettori applicati in T
 Vettore3D_Applicato(T,Ac(1,1),Ac(2,1),Ac(3,1),colorX)
 Vettore3D_Applicato(T,Ac(1,2),Ac(2,2),Ac(3,2),colorY)
 Vettore3D_Applicato(T,Ac(1,3),Ac(2,3),Ac(3,3),colorZ)
 
-plot3(T(1),T(2),T(3),'or','MarkerFaceColor','b','MarkerEdgeColor','b','MarkerSize',5);
-Prj=[[0;0;0] T];
-line(Prj(1,:),Prj(2,:),Prj(3,:),'Color','b','LineStyle','-')
-%Disegno il Piano Camera
-coloreC=[0 1 0];
+%La camera e allineata al piano di terra e l'asse focale e l'asse Y
+AsseU=w*Ac(:,1)./norm(Ac(:,1));
+AsseV=h*Ac(:,3)./norm(Ac(:,3));
+DisegnaPiano(AsseU,AsseV,T);
 
+%Matrici di Rotazione tra Mondo e Camera e determinata dall' Orientazione
+%della Camera.
+%Considero un Punto Zm in Coordinate Mondo ed assumo che la camera sia
+%puntata verso di Esso
 
 %Disegno un punto in Coordinate Mondo
-Zw=[30;20;20]
+Zw=[60;230;30]
 plot3(Zw(1),Zw(2),Zw(3),'or','MarkerFaceColor','b','MarkerEdgeColor','b','MarkerSize',5);
+%Lina passante per il CO
+Prj=[CO Zw];
+line(Prj(1,:),Prj(2,:),Prj(3,:),'Color','r','LineStyle','-')
+Prj=[[0;0;0] CO];
+line(Prj(1,:),Prj(2,:),Prj(3,:),'Color','r','LineStyle','-')
 
 %punto Zw sul piano di terra
 Zwo=[Zw-[0;0;Zw(3)]];
@@ -114,36 +110,28 @@ line(Prj(1,:),Prj(2,:),Prj(3,:),'Color','g','LineStyle','-')
 Prj=[Zwo Zw]; 
 line(Prj(1,:),Prj(2,:),Prj(3,:),'Color','g','LineStyle','-')
 
+Pu=ProJ(Zw,fo,Uo,Vo,tx,T);
+Pn=Pu./Pu(3);
+subplot(1,2,2)
+plot(Pn(1),Pn(2),'og','MarkerFaceColor','g','MarkerEdgeColor','g','MarkerSize',4); hold on
 
+[x,y,z] = sphere(30);
+[m,n]=size(x);
+x=reshape(x,1,m*n);
+y=reshape(y,1,m*n);
+z=reshape(z,1,m*n)+10;
+Zw=10*[x;y;z]+repmat(Zw,1,m*n);
+ 
+x=reshape(Zw(1,:),m,n);
+y=reshape(Zw(2,:),m,n);
+z=reshape(Zw(3,:),m,n);
+subplot(1,2,1)
+surf(x,y,z)  % sphere centered at origin
 
-
-%Calcolo Zw in coordinate Camera
-
-figure(2);
-title('CAMERA REFERENCE SYSTEM')
-%Sistema di Riferimento Camera centrato nell'origine
-plot3(0,0,0,'or','MarkerFaceColor','b','MarkerEdgeColor','b','MarkerSize',5);
-coloreM=[1 0 0];
-colorX=[1 0 0];
-colorY=[0 1 0];
-colorZ=[0 0 1];
-%Sistema di Riferimento CAMERA centrato nell'origine
-Vettore3D(Aw(1,1),Aw(2,1),Aw(3,1),colorX,2) %X in red
-Vettore3D(Aw(1,2),Aw(2,2),Aw(3,2),colorY,2) %Z in green
-Vettore3D(Aw(1,3),Aw(2,3),Aw(3,3),colorZ,2) %Y in blue
-DisegnaPiano(Aw(:,1),Aw(:,3),[0;0;0])
-
-%Disgeno Zw nwl sistema di riferimento della CAMERA
-Ztemp=Zw-T;
-Zc=Rc2w*Ztemp;
-plot3(Zc(1),Zc(2),Zc(3),'or','MarkerFaceColor','r','MarkerEdgeColor','r','MarkerSize',5);
-
-%Eseguo la stessa Operazione sugli Assi nel sistema di Riferimento Mondo
-Ztemp=Ac;
-Zc=Rc2w*Ztemp;
-Vettore3D(Zc(1,1),Zc(2,1),Zc(3,1),colorX,2) %X in red
-Vettore3D(Zc(1,2),Zc(2,2),Zc(3,2),colorY,2) %Z in green
-Vettore3D(Zc(1,3),Zc(2,3),Zc(3,3),colorZ,2) %Y in blue
-
-%Ruoto la Camera per vedere se si allinea al SISTEMA DI RIFERIMENTO MONDO
-RuotaPiano([0;0;10],[0;10;0],Ztemp,Rw2c)
+subplot(1,2,2)
+Pu=ProJ(Zw,fo,Uo,Vo,tx,repmat(T,1,m*n));
+Pn=[Pu(1,:)./Pu(3,:);Pu(2,:)./Pu(3,:)]
+plot(Pn(1,:),Pn(2,:),'ob','MarkerFaceColor','b','MarkerEdgeColor','b','MarkerSize',5)
+axis([0 w*ku 0 h*kv])
+axis ij
+axis equal
