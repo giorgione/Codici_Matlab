@@ -1,3 +1,11 @@
+% function campan = getRoughCamPan(Z, KLT, frame, param)
+%  Calculate an Rough estimate of the Cam Pan angle through KLT FEATURES
+%  extracted from the GROUND PLANE
+%  
+%  - Z:     Camera Model
+%  - KLT:   KLT features for the video loaded from FILE
+%  - frame: frame index
+%  - param:
 function campan = getRoughCamPan(Z, KLT, frame, param)
 
 if frame < -1 % 50
@@ -5,19 +13,25 @@ if frame < -1 % 50
     return;
 end
 
+%ground features index and match value
 gfidx = find(Z.gfcnt > 1);
 gfmatch = zeros(1, length(gfidx));
 
+%For each ground features
 for j = 1:length(gfidx)
+    %search for matching index
     temp = find(KLT.vidx == Z.gfidx(gfidx(j)));
+    %No matching: frame=0
     if length(temp) == 0
         continue;
     end
     if ((KLT.x(temp, frame) > 0) && (KLT.y(temp, frame) > 0))
+        %save the Matching index in KLT
         gfmatch(j) = temp;
     end
 end
 
+%Compute GROUND FEATURES mean values
 mfeat = mean(Z.gfeat, 2);
 gflist = reshape(mfeat, 3, length(mfeat) / 3);
 gflist = gflist(:, gfidx);
@@ -26,7 +40,10 @@ campan = 0;
 cnt = 0;
 step = pi/180/5;
 direction = 1;
+
+% Get New STATE ESTIMATE of CAMERA's LOCATION from CAMERA DYNAMIC MODEL
 cam = getNextCamera(Z.cam(:, 1), param);
+% Compute 
 best = computeDist(gflist, gfmatch, cam, KLT, frame);
 
 while(cnt < 30)

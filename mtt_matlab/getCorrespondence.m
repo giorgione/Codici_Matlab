@@ -96,15 +96,33 @@ t = 1;
 
 end
 
-
-
+%function ol = getOverlap(A, B)
+% Calculates the OVERLAP between the bounding box A and B
+% PARAMETERS INPUT:
+%
+% A: Detection Vector [x, y, width, height]
+% B: Detection Vector [x, y, width, height]
+%
+% ol:  OVERLAP between the bounding box of Detections A and B
+%
+%       o-------------------o A1
+%       |o-------------o B1 |
+%       ||             |    |  
+%       ||             |    |     
+%       ||             |    |
+%       o|-------------|----o
+%       A|             |    
+%        o-------------o    
+%        B                          
+%
 function ol = getOverlap(A, B)
-% inputs = [x, y, width, height]
-
+  
+%calculate upper right corner fo the bbox of Detections
 A1 = A + [0, 0, A(1:2) - 1];
 B1 = B + [0, 0, B(1:2) - 1];
 
+%Calculate overlap box
 obox = [max(A1(1), B1(1)), max(A1(2), B1(2)), min(A1(3), B1(3)), min(A1(4), B1(4))];
-
-ol = 2 * max(0, obox(3)-obox(1)+1) * max(0, obox(4)-obox(2)+1) / (A(3) * A(4) + B(3) * B(4));
+TotArea=(A(3) * A(4) + B(3) * B(4));
+ol = 2 * max(0, obox(3)-obox(1)+1) * max(0, obox(4)-obox(2)+1) /TotArea ;
 end

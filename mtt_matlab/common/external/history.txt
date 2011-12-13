@@ -1,0 +1,116 @@
+Version 2.30 (15-May-09)
+ -adding images/seq* (support for .seq video files)
+ -added bbApply>nmsMax,toMask,frMask, tweaked other bbApply funcs
+ -optimized rbfComputeFtrs
+ -added matlab/multiTimes.m (faster than external/other/multiprod.m)
+ -replaced images/imDownsample with images/imResample
+ -updated version of savefig to 2.0 (can embed fonts)
+ -fixed/suppressed mlint errors new to Matlab 2009a
+
+Version 2.20 (06-Mar-09)
+ -optimized classify/kmeans2 and classify/meanShift
+ -added matlab/uniqueColor.m for generating random colors
+ -added images/imDownsample (fast bilinear image downsampling) 
+ -tweaked/improved confMatrixShow
+ -removed restriction that pidst2 must use type double
+ -tweaked/added to bbApply.m
+ -tweaked/added to getPrmDflt.m
+ -tweaked/improved classify/rbf*
+ -added multiprod.m to external/other
+ -cleaned up c code/headers
+
+Version 2.12 (17-Nov-08)
+ -new version of savefig (also removed exportfig)
+ -optimized/tweaked nonMaxSupr and nonMaxSuprList <--2-3x faster
+ -added matlab/bbApply: functions for manipulating bounding boxes
+ -removed dependencies to randint & minmax (not available on all systems)
+ -tested compatibility with Matlab 2008b (all ok!)
+ -tested on minimal Matlab install (requires Image Processing +  Signal Processing Toolboxes)
+
+Version 2.11 (09-July-08)
+ -removing external/xmltree from toolbox (not being used by anything)
+ -removing /private directories from doc
+ -added Google Analytics Code to documentation (replaced StatCounter) 
+
+Version 2.10 (02-July-08)
+ -added kernelTracker.m (and helper funciton) to /images
+ -added /matlab/plotRoc.m and /matlab/dirSynch.m
+ -added matlab/dijkstras.m (and accompanying cpp files in /private)
+ -made /matlab/getPrmDflt.m more flexible
+ -minor update to /matlab/RotationMatrix.m
+ -moved main comment after "function ..." line for nicer Matlab code collapsing
+ -updated compile script, including linux binaries
+
+Version 2.03 (25-Feb-08)
+ -optimized getPrmDflt. New cleaner way of using it too.
+ -optimized images/imtransform2
+ -minor performance tweak for meanShift1.c
+ -minor tweaks to images/imrectLite
+ -minor tweak to doc index.html file to remove scrollbars if unnecessary
+ -typos fixes in documentation, learned to spell "license"
+
+Version 2.02 (31-Oct-07)
+ -made images/im.m compatible with Matlab2007b
+ -in doc changed toolbox_compile to toolboxCompile
+ -minor optimization / bug fix in matlab/arrayCrop
+ -minor bugs/cleanup of images/imtransform2 
+ -added images/imrectLite
+
+Version 2.01 (10-Oct-07)
+ -added copyright notice to each file
+ -added LGPL licence information (see gpl.txt and lgpl.txt)
+ -moved savefig/matrix2latex from /external to /external/other
+
+Version 2.0 (30-Sept-07)
+ -major overhaul that included renaming / merging many functions
+ -NOT backward compatible
+ -standardizing naming conventions (no more under_scores)
+ -removed:
+  -montages2 (see montages)
+  -rotation_matrix2D,rotation_matrix3D,recover_rotation3D (see rotationMatrix)
+  -localsum, localsum_block (see localSum)
+  -normxcorrn_fg (see normxcorrn)
+  -imsubs_resize (not useful/general)
+ -filters merged lots of 1d/nd functions (visalizeFilters, FbMake, filterGauss)
+ -removed randperm2 (see randsample in the matlab statistics toolbox)
+ -merged pca_apply and pca_apply_large
+ -removed mode2.m (now apparently part of matlab)
+ -merged all the dist_*.m -> into pdist2.m
+ -merged imwrite2split into imwrite2
+ -merged nlfilt_sep and nlfiltblock_sep into nlfiltersep
+ -merged 1d/nd histogram function, cleaned up commenting
+ -merged makemovie, makemovies, makemovieset, makemovisets, playmovie into playMovie
+ -merged filmstrip, filmstrips into filmStrip
+
+Version 1.5 (06-Jul-07)
+ -major documentation change
+ -formatting of code
+ -general code cleanup
+ -fixed display bug in kmeans2
+ -changed behavior of gauss_smooth if extra sigmas specified
+ -tweaked playmovies
+
+Version 1.03  (03-May-06)
+ -this file is now a standard part of the documentation
+ -thanks to everyone who gave me comments and helped make this toolbox more useful!
+ -added imtranslate.m
+ -playmovie/playmovies backward/forward playback
+ -comment nonmaxsupr < vs <=
+ -compile problems 'toolbox_compile'
+ -tweaked feval_images / imwrite2 to make more resilient
+ -added to imnormalize
+ -added scales to jitterimage
+ -added imwrite2split (useful extension to imwrite2 for writing/reading from mul dirs)
+ -lots of other minor fixes that I should have recorded...
+
+Version 1.02  (29-Nov-05)
+ -filmstrip/filstrips
+ -principal is misspelled in the PCA-related functions.
+ -fixed clustermontages (header was stripped)
+ -updated overview (add to path, recompile, description)
+
+ Version 1.01  (11-Oct-05)
+  -minor changes?
+ 
+ Version 1.00  (02-Oct-05)
+  -initial version

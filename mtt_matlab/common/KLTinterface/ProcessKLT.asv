@@ -1,0 +1,11 @@
+function ProcessKLT(dirname, ext, nfeat)
+files = dir([dirname '\*.' ext]);
+
+outformat = 'temp%06d.pgm';
+for i = 1:length(files)
+    im = imread([dirname '\' files(i).name]);
+    outfile = sprintf('temp%06d.pgm', i);
+    imwrite(im, outfile, 'pgm');
+end
+
+end

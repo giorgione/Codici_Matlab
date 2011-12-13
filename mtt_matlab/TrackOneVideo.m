@@ -1,4 +1,18 @@
+% function [Tracks, CTracks, camTrack, Zs, TP, FP, FN, F, KLTused] = TrackOneVideo(imgdir, detdir, KLT, ext, fstep, framerate, iZ, sparams, firstframe, lastframe)
+% Tracking from 1 video Sequence:
+%  PARAMETERS
+% - imgdir:  directory of images extracted from the video sequence.
+% - detdir:  directory of detection results for each frame of the video sequence
+% - KLT:     directory containing detections of KLF features for the GROUND
+% - ext:     filename NOT USED
+% - fstep: 
+% - framerate, 
+% - iZ : Initial Camera Model
+% - sparams: All Variable Model
+% - firstframe
+% - lastframe 
 function [Tracks, CTracks, camTrack, Zs, TP, FP, FN, F, KLTused] = TrackOneVideo(imgdir, detdir, KLT, ext, fstep, framerate, iZ, sparams, firstframe, lastframe)
+%Detection Threshold
 detth = sparams.detth;
 
 Tracks = [];
@@ -97,7 +111,8 @@ for i = 1:fstep:length(imfiles)
     Im = imread([imgdir imfiles(i).name]);
     fileNameNoExt=imfiles(i).name(1:find(imfiles(i).name=='.',1,'last')-1 );
     
-    %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% READ inputs
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % READ DETECTIONS in Current Frame
     [X, Xc, det] = getDets(imgdir, detdir, i-1, detth, isz);
     
     if exist([imgdir fileNameNoExt '_ant.mat'])
@@ -107,7 +122,9 @@ for i = 1:fstep:length(imfiles)
         truecnt(i) = 0; % truecnt(i - fstep);
         oneFrameAnnotation = {};
     end
-    %%%%% get MS tracker
+    
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+    %get MS tracker for the FRAMES I
     [Y] = getMStracks(Im, Z, KLT, i, sparams, kernels, szkernel, mstsize, nBit, simth);
     %%%%%%%%%%%%%% MS track end
     %% %%%%%%%%%%%%%%%%% correspondence
@@ -234,18 +251,50 @@ for j = newtracks
 end
 
 end
+%function [X, Xc, det, detc] = getDets(imgdir, detdir, idx, detth, isz)
+%
+% Read Detections of PEOPLE and CARS in Frame idx and return DETECTION data
+% filtered and unfiltered
+% PARAMETERS INPUT:
+%
+%  - imgdir: directory containing the frames
+%  - detdir: directory containing the outputs of Dector for each frame
+%  - idx: frame index
+%  - detth:  Detection Threshold
+%  - isz: size of the frame
+%
+% PARAMETERS OUTPUT:
+% 
+%  - X:  struct data contaning Detections set to []
+%  - Xc: struct data contaning filtered Detections
+%           idx:  id of Detection
+%           obs:  Detection Data (uo,vo,w,h)
+%           pobj: Probability of Detection for the scale
+%
+%  - det:  [ ]
+%  - detc: filtered Detections (uo,vo,w,h,Scale)
 
 function [X, Xc, det, detc] = getDets(imgdir, detdir, idx, detth, isz)
 det = [];
 detc = [];
 if exist([detdir '/conf_' num2str(idx, '%08d') '.conf'])
+    %                                      (down-left)-loc.     upper-right loc.                                  
+    %                                                    |       | 
+    %Detection Vector (num. detection in frame) x 5: [ Uo , Vo , U1 , V1 , Scale]
     detc = load([detdir '/conf_' num2str(idx, '%08d') '.conf']);
 
 %     detc(1, :) = [];
+    
+    %% Detection Filtering
+    %
+    % 1) Remove Detection under Threshold
     detc(detc(:, 5) < detth, :) = [];
+    %Calculate the W and H of the box
     detc(:, 3:4) = detc(:, 3:4) - detc(:, 1:2) + 1;
 
+    % 2) Reduce BBOX-width
     for j = 1:size(detc, 1)
+        %If width of bbox > img width - 15 reduce the bounding box width
         if detc(j, 1) + detc(j, 3) > isz(2) - 15
             detc(j, 3) = isz(2) - 15 - detc(j, 1);
         end
@@ -253,25 +302,38 @@ if exist([detdir '/conf_' num2str(idx, '%08d') '.conf'])
     
     Xc.obs = [];
     Xc.idx = [];
-
+    % 3) Calculate for each detection couple (j,k) by getOverlap(Dj,Dk) in getCorrispondence.m 
+    %    the OVERLAP betwee bounding bbox
+    % 
     omat = zeros(size(detc, 1), size(detc, 1));
     for j = 1:size(detc, 1)
         for k = j + 1:size(detc, 1)
             omat(j, k) = getOverlap(detc(j, 1:4), detc(k, 1:4));
         end
     end
+     % 4) Estraction of Overlapping Detections > 0.4 
     [rid, cid]=find(omat > 0.4);
 
     filterout = [];
+    
+    % 5) Scale Analysis: Select Overlapping Detection with the Minimum
+    %    Scale value
     for j = 1:length(rid)
         if detc(rid(j), 5) > detc(cid(j), 5)
+            % set to be deleted
             filterout(end + 1) = cid(j);
         else
             filterout(end + 1) = rid(j);
         end
     end
+    %delete selected Detection
     detc(filterout, :) = [];
 
+    %Xc struct:
+    % 
+    %  idx:  id of Detection
+    %  obs:  Detection Data (uo,vo,w,h)
+    %  pobj: Probability of Detection for the scale
     Xc.idx = 1:size(detc, 1);
     for j = 1:size(detc, 1)
         Xc.obs(:, j) = detc(j, 1:4)';
@@ -319,14 +381,22 @@ X.obs = [];
 X.pobj = [];
 
 end
+%function [Y] = getMStracks(Im, Z, KLT, frameidx, sparams, kernels, szkernel, mstsize, nBit, simth)
+% Get the Result of Meanshift Tracker To Track target hypotesis
+% - Im: Frame 
+% - Z: current model
+% - KLT: klt features
+% - frameidx: frame index 
 
 function [Y] = getMStracks(Im, Z, KLT, frameidx, sparams, kernels, szkernel, mstsize, nBit, simth)
 %%%%% get MS tracker
 Y = zeros(3, length(Z.model));
+%calculate pan angle estimate
 tpan = getRoughCamPan(Z, KLT, frameidx, sparams);
 
 for j = 1:length(Z.model)
 %     [bb] = getImageProjections(Z, j, sparams, 1, tpan);
+    
     [bb] = getImageProjections(Z, j, sparams, 0, tpan);
     bb = mean(bb, 2);
     ppos = [bb(1:2) + bb(3:4)/2; bb(3:4)];

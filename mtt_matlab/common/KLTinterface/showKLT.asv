@@ -1,0 +1,17 @@
+function showKLT( dirname, ext, kltfile )
+[x, y, val] = klt_read_featuretable(kltfile);
+
+files = dir([dirname '\*.' ext]);
+for i = 1:length(files)
+    im = imread([dirname '\' files(i).name]);
+    imshow(im);
+    hold on;
+    scatter(x(:, i), y(:, i), 'r.');
+    tidx = (val(:, i) == 0);
+    
+    quiver(x(tidx, i), y(tidx, i), x(tidx, i) - x(tidx, i), y(tidx, i) - y(tidx, i));
+    hold off;
+    pause(0.1);
+end
+
+end

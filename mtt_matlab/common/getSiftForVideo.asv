@@ -1,0 +1,41 @@
+function getSiftForVideo(imdir, imext, outfile)
+
+addpath(genpath('sift-0.9.19.tar'));
+
+imfiles = dir([imdir '*.' imext]);
+% 
+% mkdir('tempsift');
+% 
+% for i = 1:length(imfiles)
+%     Im = imread([imdir imfiles(i).name]);
+%     Im = rgb2gray(Im);
+%     Im = Im-min(Im(:));
+%     Im = Im/max(Im(:));
+%     
+%     [frames,descr,gss,dogss] = sift(Im, 'Verbosity', 1);
+%     save(['tempsift\sift_' num2str(i) '.mat'], 'frames', 'descr');%, 'gss', 'dogss');
+% end
+
+for i = 1:(length(imfiles)-1)
+    load(['tempsift\sift_' num2str(i) '.mat'], 'frames', 'descr');%, 'gss', 'dogss');
+    frames1 = frames;
+    descr1 = descr;
+    load(['tempsift\sift_' num2str(i+1) '.mat'], 'frames', 'descr');%, 'gss', 'dogss');
+    frames2 = frames;
+    descr2 = descr;
+    
+    matches=siftmatch( descr1, descr2 );
+    imshow([imdir imfiles(i+1).name]);
+    
+    tic;
+    
+    hold on;
+    for j = 1:size(matches, 2)
+        line()
+    end
+    hold off;
+end
+
+
+end
+
