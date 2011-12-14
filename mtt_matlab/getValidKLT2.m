@@ -1,17 +1,18 @@
 % function idx = getValidKLT2(KLT, i, Z, imwidth, sparams, pred)
-%
-% Validate KLT features by FILTERING OUT  KLT points (x,y) that are
+% Search VALID KLT features in the i-Frame in 
+% Validate KLT features by FILTERING OUT  KLT points 
+% KLT.x(:, i) and KLT.y(:, i) that are:
 % 
 % 1) OUTSIDE the sub-region R of the image: 
-%    * sparams.KLTmargin < x < imwidth - sparams.KLTmargin
-%    * y is > mcam(4) <--> horizon line + 30 pixel
+%    * sparams.KLTmargin < KLT.x(:, i) < imwidth - sparams.KLTmargin
+%    * KLT.y(:, i) is > mcam(4) <--> horizon line + 30 pixel
 %
 % 2) INSIDE the BOUNDING-BOX of DETECTED PEOPLE
 %
 % PARAMETERS INPUT:
 %
 % - KLT: KLT FEATURES for all the frames
-% - i: current FRAME
+% - i: current FRAME Index
 % - Z: current Z configuration
 % - imwidth: image widht
 % - sparams: Model Data

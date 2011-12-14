@@ -502,7 +502,9 @@ if Z.nFeats < sparams.nfeatuse
     rp = rp(end:-1:1); %Index of KLT Values response in Descending Order
 %         rp = KLTidx(rp);
 
-    cnt = Z.nFeats; j = 0;
+    %Conservo le KLT FEATURES che hanno risposta MAGGIORE
+    cnt = Z.nFeats;
+    j = 0;
 
     while(cnt < sparams.nfeatuse)
         j = j + 1;

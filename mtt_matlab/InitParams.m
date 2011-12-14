@@ -154,7 +154,7 @@ elseif mode == 3
     % MCMC sampling parameters
     
     %Number of Iteration of Sampling 
-    params.nretry = 10;
+    params.nretry = 5;   %Originale 10
     %Numbers of generated samples
     params.nsamples = 150;
     %Burning Period
