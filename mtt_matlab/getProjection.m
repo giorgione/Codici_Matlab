@@ -12,6 +12,8 @@
 % OUTPUT:
 % 
 %   - x = [x, y, imhiehgt] --> Image Point
+%   
+%   - bb = bounding box
 %
 %  EXTRINSIC CAMERA MODEL:
 %
@@ -49,15 +51,22 @@ z(1:2) = R * z(1:2);
 % u = f*x/z + uo
 % v = f*y/z + vo   cam(2) = height = y of the classical pinhole model
 
-%Pixel coordinate unormalized
+%Pixel coordinate unormalized: BOTTOM center point location
 x(1) = cam(1) / z(2) * z(1) + cam(3);
 x(2) = cam(1) / z(2) * cam(2) + cam(4);
+%object height:
 x(3) = cam(1) / z(2) * z(5);
 
+% BOUNDING BOX of the Observation
 if nargout > 1
+    % Upper-Right Point of the bbox 
+    %              half-width of the box
     bb(1) = x(1) - x(3) / 4;
     bb(2) = x(2) - x(3);
+    
+    %width of box
     bb(3) = x(3) / 2;
+    %height of box
     bb(4) = x(3);
 end
 

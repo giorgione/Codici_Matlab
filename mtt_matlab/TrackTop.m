@@ -1,5 +1,16 @@
 % function TrackTop(imgdir, detdir, option, ihorizon, prefix, thlist)
-% Main function for tracking a video.
+% Main function for tracking in video sequence.
+%
+% The model is specified by 2 structure:
+%
+% - sparams : contains all data describing the Model, for ex.
+%               - Transition Matrix of Variables
+%               - Covariance Matrix of Variables
+% 
+% - Z: contains all the Samples for the Variables of the Model 
+%      (current STATE SAMPLES)
+%
+% PARAMETERS:
 %
 % - imgdir: directory of images extracted from the video sequence.
 %
@@ -29,6 +40,8 @@ fstep = 2;
 framerate = 14.9;
 dt = fstep / framerate;
 
+
+
 % use only 3 for now: Initialize Parameter for the MODEL
 % sparams: struct containing MODEL PARAMETERS
 sparams = InitParams(3, fstep, framerate);
@@ -43,20 +56,22 @@ sparams.nfeatuse = 15;
 sparams.mpcam = ihorizon; % mean
 sparams.vpcam = 3^2; % variance
 
-ext = '_det06.txt';
-
 sparams.useInteraction = 0;
 
 % dimension of one car state. (x, z, vx, vz, h, w) + 1 (class)
 sparams.ncarv = 6; 
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%% initialize samples.
 sparams.camscnt = 20;
 sparams.perscnt = 10;
 sparams.carscnt = 10;
 sparams.featscnt = 10;
 
+ext = '_det06.txt';
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
-% STARTING PARAMETERS SETTING for the WHOLE MODEL
+% STARTING PARAMETERS SETTING for the MODEL --> it REFERS to the current
+% FRAME, at each iteration compare Z with Previuos observation
 
 %Initial numbers of samples for the Camera Model
 Z.nSamples = 1;
@@ -75,8 +90,8 @@ Z.per = zeros(0, Z.nSamples);
 Z.peridx = []; 
 
 %% GROUND DATA
-Z.gfeat = zeros(0, Z.nSamples); % ground features
-Z.gfidx = [];                   % ground features IDX
+Z.gfeat = zeros(0, Z.nSamples); % ground features --> EMPTY MATRIX
+Z.gfidx = [];                   % ground features IDX --> Array of Index of Ground Features
 Z.gfcnt = [];                   % ground features count
 
 %% 
@@ -88,6 +103,7 @@ Z.nCarTargets = 0;
 
 Z.beta = [];
 Z.tccnt = []; 
+Z.tcnt = [];
 
 %% CAR DATA
 Z.car = zeros(0, Z.nSamples);
@@ -99,7 +115,14 @@ max_frames = 500;
 % KLT = sift_read_featuretable(imgdir, max_frames);
 %load KLT features for the video
 load('KLT500.mat');
-
+% SPARSE MATRIX containing all the ( 182026 )generated KLT features in the 
+% complete video sequence ( 500 frames )
+% KLT = 
+%      loc: [2x499 double]
+%      val: [182026x1 double]       
+%        x: [182026x499 double]     499 Number of frames
+%        y: [182026x499 double]
+%     vidx: [1x182026 double]      INDEX of KLT POINT--> 1...182026
 for th = thlist
     %Fix the Treshold for the Detection
     sparams.detth = th;

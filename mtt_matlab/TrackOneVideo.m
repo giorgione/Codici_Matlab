@@ -44,6 +44,7 @@ if nargin < 8
 elseif nargin < 9
     lastframe = length(imfiles);
 end
+    disp(['Dir ' imgdir ': ' num2str(NFRAMES) ' video frames']);
 
 Im = imread([imgdir imfiles(1).name]);
 isz = size(Im);
@@ -68,11 +69,15 @@ cparams.beta = 1;
 cparams.adf = 0.6;
 mstsize = 1.3;
 % sparams_cam.asr = 100;
-%%%% mstrack parameters
+
+%% GENERATE szkernel KERNEL for meanshift TRACKING  composed by increasing
+%  number of points in [-1 1] x [-1 1] 
+%% mstrack parameters
 nBit = 6;
 nkernel = 61;
 szkernel = floor(logspace(-log(2)/log(10), log(4)/log(10), nkernel) * 64) * 2;
 for s = 1:length(szkernel)
+  %                            npoints x width-height
   kernels(s) = buildKernel( szkernel(s)/2, szkernel(s));
 end
 simth = 0.9;
@@ -105,14 +110,16 @@ if(size(KLT.x, 2) >= NFRAMES)
     KLT.y(:, [1:(firstframe-1), (lastframe+1):NFRAMES]) = [];
 end
 % speed([1:(firstframe-1), (lastframe+1):NFRAMES]) = [];
-% %%%%%%%%%%
+%%%%%%%%%%%
+%
+% PROCESSING FRAMES by FRAMES
 for i = 1:fstep:length(imfiles)
-    disp(['Processing ' num2str(i) 'th frame of ' imgdir]);
+    disp(['Processing ' num2str(i) 'th frame']);
     Im = imread([imgdir imfiles(i).name]);
     fileNameNoExt=imfiles(i).name(1:find(imfiles(i).name=='.',1,'last')-1 );
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    % READ DETECTIONS in Current Frame
+    % READ DETECTIONS in Current Frame of PEOPLE AND CAR
     [X, Xc, det] = getDets(imgdir, detdir, i-1, detth, isz);
     
     if exist([imgdir fileNameNoExt '_ant.mat'])
@@ -124,7 +131,7 @@ for i = 1:fstep:length(imfiles)
     end
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
-    %get MS tracker for the FRAMES I
+    %get MS tracker for the FRAMES i
     [Y] = getMStracks(Im, Z, KLT, i, sparams, kernels, szkernel, mstsize, nBit, simth);
     %%%%%%%%%%%%%% MS track end
     %% %%%%%%%%%%%%%%%%% correspondence
@@ -148,7 +155,10 @@ for i = 1:fstep:length(imfiles)
     end
     %%%%%%%%%%%%%%%%%%% correspondence
     %% %%%%%%%%% get KLT match
-    [Z, tKLT, gfmatch] = KLTmatch(Z, KLT, i, sparams, isz); KLTused(i).tKLT = tKLT;
+    %
+    % 
+    [Z, tKLT, gfmatch] = KLTmatch(Z, KLT, i, sparams, isz);
+    KLTused(i).tKLT = tKLT;
     %%%%%%%%%%% done
     if i == 1,   sparams.dt = 0;
     else         sparams.dt = fstep/framerate;
@@ -387,13 +397,15 @@ end
 % - Z: current model
 % - KLT: klt features
 % - frameidx: frame index 
-
+% - kernels: KERNELs of different numbers of point
+% - szkernel: Number of points in the i-Kernel --> (szkernel/2,szkernel)
 function [Y] = getMStracks(Im, Z, KLT, frameidx, sparams, kernels, szkernel, mstsize, nBit, simth)
 %%%%% get MS tracker
 Y = zeros(3, length(Z.model));
 %calculate pan angle estimate
 tpan = getRoughCamPan(Z, KLT, frameidx, sparams);
 
+%Only after processing First frame
 for j = 1:length(Z.model)
 %     [bb] = getImageProjections(Z, j, sparams, 1, tpan);
     
@@ -415,29 +427,50 @@ end
 %%%%%%%%%%%%%% MS track end
 end
 
+%function [Z, tKLT, gfmatch] = KLTmatch(Z, KLT, frameidx, sparams, isz)
+% MATCHING between KLT Features
+%
+% PARAMETERS OUT
+%
+% - Z: Model Data Updated with MATCHED KLT features
+% 
+% - tKLT: MATCHED KLT FEATURES in a struct format (x,y,idx)
+%
+% - gfmatch: INDEX of MATCHED KLT FEATURES in 
 function [Z, tKLT, gfmatch] = KLTmatch(Z, KLT, frameidx, sparams, isz)
-
+%Filtering of KLT FEATURES with imposed spatial costraint
+%KLTidx: index of VALID KLT FEATURES
 KLTidx = getValidKLT2(KLT, frameidx, Z, isz(2), sparams)';
 removelist = [];
 gfmatch = [];
 
+%MATCHING PROCEDURE: for the first frame Z.gfdix=[]
 for j = 1:length(Z.gfidx)
+    %search corrispondence betwen features in Z and KLT
     temp = find(KLT.vidx(KLTidx) == Z.gfidx(j));
+   
     if ~isempty(temp)
+        %store matched features
         gfmatch(end + 1) = temp;
     else
+        % store features to be removed
         removelist(end+1) = j;
     end
 end
 
-% temp
+% temp KLT: features matched
 tKLT.x = KLT.x(KLTidx(gfmatch), frameidx);
 tKLT.y = KLT.y(KLTidx(gfmatch), frameidx);
 tKLT.idx = KLT.vidx(KLTidx(gfmatch));
+
 % remove out non-detected features!
+% First frame, removelist is []
 Z = FilterOutGFeats(Z, removelist, sparams);
 end
 
+
+%function [Z, KLT, KLTused] = postProcessFeatures(Z, KLT, KLTused, frameidx, sparams, isz, gfmatch)
+%Post Processing of KLT FEATURES
 function [Z, KLT, KLTused] = postProcessFeatures(Z, KLT, KLTused, frameidx, sparams, isz, gfmatch)
 
 % filter out features!
@@ -455,42 +488,51 @@ KLT.val(removeKLT, :) = [];
 KLT.vidx(removeKLT) = [];
 Z = FilterOutGFeats(Z, removelist(:)', sparams);
 
-% initialize features!
+%KLT FEATURES INIT (when processing first frame)
 if Z.nFeats < sparams.nfeatuse
+    %Filter KLT features 
     KLTidx = getValidKLT2(KLT, frameidx, Z, isz(2), sparams, 0)';
-
+    %check for some error
     if sum(KLT.x(KLTidx, frameidx) == 0) > 0
         keyboard;
     end
 
-%         rp = randperm(length(KLTidx));
+    % Sort KLT values response in Ascending Order
     [dummy, rp] = sort(KLT.val(KLTidx));
-    rp = rp(end:-1:1);
+    rp = rp(end:-1:1); %Index of KLT Values response in Descending Order
 %         rp = KLTidx(rp);
 
     cnt = Z.nFeats; j = 0;
 
     while(cnt < sparams.nfeatuse)
         j = j + 1;
-        if j > length(rp)
+        if j > length(rp) %exit from while
             break;
         end
-        idx1 = rp(j);
+        idx1 = rp(j); %get index of Features
         if ~isempty(find(gfmatch == idx1))
             continue;
         end
-
+        %check error
         if sum([KLT.x(KLTidx(idx1), frameidx); KLT.y(KLTidx(idx1), frameidx)] <= 0) > 0
             keyboard;
         end
+        %Analyze all Samples
         for k = 1:Z.nSamples
+            %Get k-Camera Sample
             tempcam = Z.cams{k};
+            %Get temp Ground Feauture 3 x 
             tempgf = zeros(3, size(tempcam, 2));
+            
+            
             for l = 1:size(tempcam, 2)
-%                     tempgf(:, l) = [getGIProj([KLT.x(KLTidx(idx1), i); KLT.y(KLTidx(idx1), i)], tempcam(:, l)); 0.97];
                 tempgf(:, l) = [getGIProj([KLT.x(KLTidx(idx1), frameidx); KLT.y(KLTidx(idx1), frameidx)], tempcam(:, l)); 0.9];
             end
+            
+            %GROUND FEATURE MEAN VALUE
             Z.gfeat((Z.nFeats*sparams.ngfeat + 1):((Z.nFeats+1)*sparams.ngfeat), k) = mean(tempgf, 2);
+        
+            %GROUND FEATURE COVARIANCE
             Z.gfV{Z.nFeats+1, k} = cov(tempgf(1:2, :)') + (0.15)^2*eye(2); % safe guard...
         end
 

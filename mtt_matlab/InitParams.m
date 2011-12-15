@@ -13,7 +13,6 @@ if mode == 1
     % MCMC proposal distribution.
     params.mPertCam = 64;
     params.mPertPer = 2;
-%     params.mPertGF = 2;
     params.mPertGF = 1;
 
     params.mPertCam = 32;
@@ -44,8 +43,7 @@ if mode == 1
     params.perPert1 = params.Qper1 / 4;
     params.perPert2 = params.Qper2 / 4; % diag([1e-10, 1e-10, 0.01, 0.01, 0.0001]) / 16;
     
-    params.mh = 1.7;
-%     params.mh = 1.8;
+    params.mh = 1.7; % 1.8;
     params.sh = 0.1;
     params.normh = 1/sqrt(2 * pi * params.sh^2);
     
@@ -67,6 +65,7 @@ if mode == 1
     params.lkltNorm = log(1/sqrt(2 * pi * kltstd^2));
     params.lkltuprob = log(normpdf(2*kltstd, 0, kltstd)^2); % at 2 sigma
     params.flipFeat = 0.2;
+    %Minimum Number of GROUND FEATURES to use
     params.nfeatuse = 10;
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
    
@@ -133,18 +132,21 @@ elseif mode == 2
     params.c1_pair = 0.3;
     params.c2_pair = 0.3;
 
-    params.i1_pair = 3; % slope of the soft step
+    params.i1_pair = 3;   % slope of the soft step
     params.i2_pair = 1.5; % threshold of the soft step
 
     params.lr1_pair = 1; % 
     params.lr2_pair = 4; % 
 
-    params.lg1_pair = 3; %
+    params.lg1_pair = 3;  %
     params.lg2_pair = 32; %
     
     params.betatrns = 0.985 * eye(3) + 0.005 * ones(3,3); % transition of interactions
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    
+    %
+    % Margin in width for the KLT FEATURES extracted from FRAMES:
+    %    sparams.KLTmargin < x < imwidth - sparams.KLTmargin
+    %    y is > mcam(4) <--> horizon line + 30 pixel
     params.KLTmargin = 20;
 elseif mode == 3
     % temp

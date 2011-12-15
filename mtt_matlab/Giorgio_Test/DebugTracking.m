@@ -1,6 +1,6 @@
 %Tracking MCMC
-imgdir='/home/gemiggio/Documents/MATLAB/ToyotaData/left_images';
-detdir='/home/gemiggio/Documents/MATLAB/ToyotaData/detections';
+imgdir='/home/gemiggio/Documents/MATLAB/ToyotaData/left_images/';
+detdir='/home/gemiggio/Documents/MATLAB/ToyotaData/detections/';
 option=[];
 ihorizon=230;
 prefix=[];
