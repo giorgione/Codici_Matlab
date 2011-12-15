@@ -27,5 +27,6 @@ for iter=1:1000
   pos = pos + posDel;
 end
 
-locs=p>0; sim=sum( sqrt(q(locs).*p(locs)) );
+locs=p>0; 
+sim=sum( sqrt(q(locs).*p(locs)) );
 end

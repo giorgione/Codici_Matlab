@@ -10,7 +10,7 @@ ccc = 'rgbck';
 lst = {'-', '-', ':', '-.'};
 
 isz = size(Im);
-
+%Only for Frames > 1
 if frame > 1
     figure(1)
     validklts = [];
@@ -52,6 +52,7 @@ if frame > 1
     hold off
     end
 end
+
 if 1
 if sparams.useInteraction
     figure(2);

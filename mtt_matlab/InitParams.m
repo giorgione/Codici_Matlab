@@ -194,7 +194,7 @@ elseif mode == 3
     params.ncarv = 6;
     %Vector 8D Describing the CAMERA:[f, yc, vc, uc, phi, vel, xc, zc]
     params.ncamv = 8; 
-    %Vector 3D Describing the PERSON
+    %Vector 3D Describing the GROUND FEAUTURE
     params.ngfeat = 3;
     params.dt = dt;
     
@@ -211,7 +211,9 @@ elseif mode == 3
     %params.Qper1 = diag([1e-3, 1e-3, 1.0, 1.0, 0.15].^2); 
     
     % perturbation covariance for CAR: 6x6 Matrix
-    params.Acar = eye(6) + [0,0,dt,0,0,0; 0,0,0,dt,0,0; zeros(4, 6)];
+    params.Acar = eye(6) + [0,0,dt,0,0,0; 
+                            0,0,0,dt,0,0; 
+                             zeros(4, 6)];
     params.Qcar2 = diag((dt * [1e-3, 1e-3, 1, 3, 0.03/dt, 0.005/dt]).^2);
     
     %Pertubatio
@@ -248,6 +250,7 @@ elseif mode == 3
     params.lkltNorm = log(1/sqrt(2 * pi * kltstd^2));
     params.lkltuprob = log(normpdf(2*kltstd, 0, kltstd)^2); % at 2 sigma
     params.flipFeat = 0.1;
+    %Number of KLT point to use
     params.nfeatuse = 10;
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     params.KLTmargin = 7;

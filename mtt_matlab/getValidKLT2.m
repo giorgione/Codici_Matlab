@@ -1,6 +1,7 @@
 % function idx = getValidKLT2(KLT, i, Z, imwidth, sparams, pred)
-% Search VALID KLT features in the i-Frame in 
-% Validate KLT features by FILTERING OUT  KLT points 
+% Search VALID KLT features in the i-Frame and MATCH with KLT of the previous
+% frames in Z.
+% Validate KLT features in the CURRENT FRAME by FILTERING OUT  KLT points 
 % KLT.x(:, i) and KLT.y(:, i) that are:
 % 
 % 1) OUTSIDE the sub-region R of the image: 
@@ -11,9 +12,9 @@
 %
 % PARAMETERS INPUT:
 %
-% - KLT: KLT FEATURES for all the frames
+% - KLT: KLT FEATURES for all the frames--> KLT in the current FRAME
 % - i: current FRAME Index
-% - Z: current Z configuration
+% - Z: PREVIOUS Z configuration --> KLT of the PREVIOUS FRAME 
 % - imwidth: image widht
 % - sparams: Model Data
 % - pred: Previous frame
@@ -28,7 +29,9 @@ function idx = getValidKLT2(KLT, i, Z, imwidth, sparams, pred)
         pred = 1;
     end
 
-    %%%%%%% we may want to reduce number of KLT features...
+    %%%%%%% we may want to reduce number of KLT features..
+    %
+    %MONTE CARLO APPROXIMATION: Generate the CAMERA STAUS from Samples
     mcam = mean(Z.cam, 2);
     %Search for VALID KLT Features in i-frame. THEY ARE VALID if:
     %
@@ -36,7 +39,8 @@ function idx = getValidKLT2(KLT, i, Z, imwidth, sparams, pred)
     % b)  y is > mcam(4) --> horizon line + 30 pixel
     idx = find(KLT.x(:, i) > sparams.KLTmargin & KLT.y(:, i) > mcam(4) + 30 & KLT.x(:, i) < imwidth - sparams.KLTmargin);
 
-    %
+    % If are Detected Person try to filter out KLT features inside their 
+    % BOUNDING BOX 
     for j = 1:length(Z.peridx)
         %Extract bbox of Detected Person: KLT in that box ARE NOT VALID
         [bb] = getImageProjections(Z, j, sparams, pred);
