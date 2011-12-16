@@ -69,7 +69,7 @@ mstsize = 1.3;
 
 %% mstrack parameters
 %  GENERATE nkernel KERNELs for meanshift TRACKING  composed by increasing
-%  number of samples  in [-1 1] x [-1 1] 
+%  number of points in [-1 1] x [-1 1] 
 nBit = 6;
 nkernel = 61;
 szkernel = floor(logspace(-log(2)/log(10), log(4)/log(10), nkernel) * 64) * 2;
@@ -85,7 +85,7 @@ figure(4)
 for kidx=1:9
     kidx1=kidx*6,
     subplot(3,3,kidx)
-    plot3(kernels(kidx1).xs,kernels(kidx1).ys,kernels(kidx1).K,'ob')
+    plot3(kernels(kidx1),kernels(kidx1),kernels(kidx1))
 end
 cparams.nperv = 5;
 % cparams.ncar = 5;

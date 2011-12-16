@@ -1,0 +1,10 @@
+%function [Ic,Qc] = cropWindow( I, nBit, pos, wd, ht )
+% Crop a window wd x ht centered in pos from the Image I,
+function [Ic,Qc] = cropWindow( I, nBit, pos, wd, ht )
+    %Extract the Window
+    row = pos(2)-ht/2;  
+    col = pos(1)-wd/2;
+    Ic = I(row:row+ht-1,col:col+wd-1,:);
+    %Save in Qc the result of the Bit Shift Operation on Ic
+    if(nargout==2); Qc=bitshift(reshape(Ic,[],3),nBit-8); end;
+end
