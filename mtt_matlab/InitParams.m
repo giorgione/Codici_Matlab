@@ -1,3 +1,6 @@
+%function params = InitParams(mode, fstep, framerate)
+%
+% Define the struct params containing all the Model Paramters
 function params = InitParams(mode, fstep, framerate)
 dt = fstep / framerate;
 if mode == 1
@@ -162,8 +165,8 @@ elseif mode == 3
     params.thinning = 100;
 
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%     Z.cam = [500 0.94 320 220 0 1.3 0 0]';
-%     Z.V{1, 1} = diag([1 0.01 1e-50 20 1e-6 .4 1e-6 1e-6]).^2;
+    %     Z.cam = [500 0.94 320 220 0 1.3 0 0]';
+    %     Z.V{1, 1} = diag([1 0.01 1e-50 20 1e-6 .4 1e-6 1e-6]).^2;
     params.mpcam = 220;
     params.vpcam = 5^2;
     
@@ -177,55 +180,58 @@ elseif mode == 3
     params.useCamAnnealing = 0;%1;
     params.AnnealingConst = 0.995;
     
-    % observation noise: MATRIX 3x3
-    params.Qdet = diag([16 32 64]) * (2/4)^2;
-    %params.Qcardet = diag([6^2 4^2 10^2 4^2]) * (1/4)^2;
-    %params.Qcardet = diag([4^2 4^2 6^2 4^2]) * (1/4)^2;
-   
-    %Car detector noise: MATRIX 4x4
-    params.Qcardet = diag([4^2 4^2 4^2 4^2]) * (1/4)^2;
-    %Track noise: MATRIX 3x3
-    params.Qktrack = diag([9 18 36]) * (2/3)^2;
-
     %% STATES VARIABLE DIMENSION:
-    %Vector 5D Describing the PERSON - TARGET VARIABLE
+    %Vector 5x1 Describing the PERSON - TARGET VARIABLE
     params.nperv = 5;
-    %Vector 6D Describing the CAR - CAR VARIABLE
+    %Vector 6x1 Describing the CAR - CAR VARIABLE
     params.ncarv = 6;
-    %Vector 8D Describing the CAMERA:[f, yc, vc, uc, phi, vel, xc, zc]
+    %Vector 8x1 Describing the CAMERA:[f, yc, vc, uc, phi, vel, xc, zc]
     params.ncamv = 8; 
-    %Vector 3D Describing the GROUND FEAUTURE
+    %Vector 3x1 Describing the GROUND FEAUTURE
     params.ngfeat = 3;
     params.dt = dt;
     
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+    %                         GENERATE ADDITIVE NOISE 
+    % Q indicate additive NOISE added to the Covariance Matrix of Processes
+    % Person Detector noise: MATRIX 3x3
+    params.Qdet = diag([16 32 64]) * (2/4)^2;
+ 
+    %Car detector noise: MATRIX 4x4
+    params.Qcardet = diag([4^2 4^2 4^2 4^2]) * (1/4)^2;
+    
+    %Track noise: MATRIX 3x3
+    params.Qktrack = diag([9 18 36]) * (2/3)^2;
+    
+    % perturbation covariance for CAR: 6x6 Matrix   
+    params.Qcar2 = diag((dt * [1e-3, 1e-3,  1,   3, 0.03/dt, 0.005/dt]).^2);
+     % perturbation covariance for PERSON: 5x5 Matrix   
+    params.Qper2 = diag((dt * [1e-3, 1e-3, .55, .55, 0.04/dt]).^2);
+    
+    %Camera Additve Noise: 8x8
+    params.Qcam = diag((dt * [1e-6, 1e-6, 1e-6, 5/dt, .5*pi/180/dt, .7, 1e-6, 1e-6]).^2);
+    
+   
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %                      GENERATE TRANSICTION MATRIX
     %% COVARIANCE for Random Process
-    % perturbation covariance for PERSON: 5x5 Matrix
+    
+    % transiction Matrix for PERSON: 5x5 Matrix
     params.Aper = eye(5) + [0,0,dt,0,0;
                             0,0,0,dt,0; 
                             zeros(3, 5)];
 
-    % perturbation covariance for PERSON: 6x6 Matrix   
-    params.Qper2 = diag((dt * [1e-3, 1e-3, .55, .55, 0.04/dt]).^2);
-    %params.Qper2 = diag((dt * [1e-3, 1e-3, .2, .2, 0.01]).^2);
-    %params.Qper1 = diag([1e-3, 1e-3, 1.2, 1.2, 0.1].^2);
-    %params.Qper1 = diag([1e-3, 1e-3, 1.0, 1.0, 0.15].^2); 
-    
-    % perturbation covariance for CAR: 6x6 Matrix
+    % transiction Matrix for CAR: 6x6 Matrix
     params.Acar = eye(6) + [0,0,dt,0,0,0; 
                             0,0,0,dt,0,0; 
                              zeros(4, 6)];
-    params.Qcar2 = diag((dt * [1e-3, 1e-3, 1, 3, 0.03/dt, 0.005/dt]).^2);
-    
-    %Pertubatio
-    params.Qcam = diag((dt * [1e-6, 1e-6, 1e-6, 5/dt, .5*pi/180/dt, .7, 1e-6, 1e-6]).^2);
-    
-    params.camPert = params.Qcam / 16; %diag([1e-10, 0.0001, 1e-10, 1, (pi/180*5/6)^2]) / 4;
+
+    %Initial Values
+    params.camPert = params.Qcam / 16; 
     params.perPert0 = diag([0.01, 0.01, 0, 0, 0.01/4]);
     params.carPert0 = diag([0.01, 0.01, 0, 0, 0.16, 0.01/4]);
     
-%     params.perPert1 = params.Qper1 / 16;
-%     params.perPert2 = params.Qper2 / 16; % diag([1e-10, 1e-10, 0.01, 0.01, 0.0001]) / 16;
-    
+     
     params.mh = 1.7;
     params.sh = 0.1;
     params.normh = 1/sqrt(2 * pi * params.sh^2);
@@ -237,9 +243,9 @@ elseif mode == 3
     
     params.sv = 1;
     params.normv = 1/sqrt(2 * pi * params.sv^2);
-    params.noHprob = normpdf(2.8 * params.sh, 0, params.sh); % * normpdf(3 * params.sv, 0, params.sv);
+    params.noHprob = normpdf(2.8 * params.sh, 0, params.sh);  
     
-    params.hdet = 0.6; % probability to detect wehn human
+    params.hdet = 0.6;   % probability to detect wehn human
     params.nhdet = 0.01; % probability to detect when non human - false alarm.
 
     params.flipObj = 0.1;

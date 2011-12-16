@@ -1,7 +1,32 @@
-function [Z, corres, corres_car] = MCMCSamplesJointStatesParametrerizationWCar(prevZ, X, Xc, Y, KLT, corres, corres_car, params, fn)
+%function [Z, corres, corres_car] = MCMCSamplesJointStatesParametrerizationWCar...
+%    (prevZ, X, Xc, Y, KLT, corres, corres_car, params, fn)
+%
+% MCMC  Sampling Procedure
+%
+% INPUT
+% - prevZ: Estimated Status of Variables in the Model from the previous
+%          iteration
+% - X: PERSON observation
+% - Xc: CAR observation
+% - Y:
+% - KLT: GROUND FEATURES
+% - corres:  
+% - corres_car: Corrispondences for Car
+% - params:  Model Parameters
+% - fn :   Current Frame Index
+%
+% OUTPUT: 
+%   - Z
+%   - corres:
+%   - corres_car:
+%
+% 
+function [Z, corres, corres_car] = MCMCSamplesJointStatesParametrerizationWCar...
+    (prevZ, X, Xc, Y, KLT, corres, corres_car, params, fn)
 
 %% Initialization
-[nsamples, N, Y, Z, prevZ, newdet, newcdet, newgfeats, corres, corres_car] = initVariables(prevZ, X, Y, Xc, KLT, corres, corres_car, params);
+[nsamples, N, Y, Z, prevZ, newdet, newcdet, newgfeats, corres, corres_car] =...
+    initVariables(prevZ, X, Y, Xc, KLT, corres, corres_car, params);
 
 samplesrecord = zeros(1, prevZ.nCarTargets + length(newcdet) + prevZ.nTargets + 1 + length(newdet) + prevZ.nFeats);
 acceptrecord = zeros(1, prevZ.nCarTargets + length(newcdet) + prevZ.nTargets + 1 + length(newdet) + prevZ.nFeats);
@@ -499,64 +524,125 @@ for j = 1:size(sample.gfeat, 2)
 end
 end
 
-function [nsamples, N, Y, Z, prevZ, newdet, newcdet, newgfeats, corres, corres_car] = initVariables(prevZ, X, Y, Xc, KLT, corres, corres_car, params)
-
+%function [nsamples, N, Y, Z, prevZ, newdet, newcdet, newgfeats, corres, corres_car] =...
+%   initVariables(prevZ, X, Y, Xc, KLT, corres, corres_car, params)
+%
+% Init the Status of the Variables in the Model
+% PARAMETERS INPUT:
+%
+% - prevZ: Estimated Status of Variables in the Model from the previous
+%          iteration --> PREDICTION for the current STATE
+% - X: PERSON observation      | 
+% - Y: Recovered TRACKS        | -->      Current Observation
+% - Xc: CAR observation        |
+% - KLT: GROUND FEATURES       |
+% - corres:  corrispondences for PERSON 
+% - corres_car: Corrispondences for Car
+% - params:  Model Parameters
+%
+% PARAMETERS OUTPUT:
+%
+% - nsamples:  Number of generated samples
+% - N:         Total Number of itaration
+% - Y:         
+% - Z:          Current Status
+% - prevZ:      Predicted Status
+% - newdet:     new  detections for PEOPLE
+% - newcdet:    new  detections for CAR
+% - newgfeats:  new  detections for GROUND POINTS
+% - corres:     PEOPLE corrispondences updated
+% - corres_car: CAR corrispondences updated
+function [nsamples, N, Y, Z, prevZ, newdet, newcdet, newgfeats, corres, corres_car] = ...
+    initVariables(prevZ, X, Y, Xc, KLT, corres, corres_car, params)
+%Number of Samples
 nsamples = params.nsamples;
+
+% Total Number of itaration
 N = params.burnin + nsamples * params.thinning;
 
-Z = prevZ; Z.cam = []; Z.per = []; Z.car = [];
+Z = prevZ;
+Z.cam = []; 
+Z.per = []; Z.car = [];
 Z.gfeat = []; % {x, z, nu} x loc, z loc, valid??
-z.gfidx = []; Z.beta = []; Z.cams = {}; Z.gfV = {};
+z.gfidx = [];
+Z.beta = [];
+Z.cams = {};
+Z.gfV = {}; %GROUND FEATURE COVARIANCE
 
 % get precision from covariance matrix
+
+%Analyze all the Samples generated in the previous Step:
+%For each Sample
+%
+% 1) Get Covariance Matrix and Precision for GAUSSIAN DISTRIBUTION
 for i = 1:prevZ.nSamples
+    
+    %Get the Covariance Matrix  for the CAMERA
     tempMat = prevZ.V{1, i}  + params.Qcam;
+    %Get Precision  <--> inverse of covariance MATRIX
     prevZ.prec{1, i} = inv(tempMat);
     
+    %Gaussian Denominator
     prevZ.normFull(1, i) = 1/ sqrt((2 * pi)  ^ size(tempMat, 1) * det(tempMat));
+    %PERSON Variable Distribution
     for j = 1:prevZ.nTargets
+        %Covariance
         tempMat = prevZ.V{j+1, i} + params.Qper2;
+        %Precision
         prevZ.prec{j+1, i} = inv(tempMat);
+        %Denum
         prevZ.normFull(j + 1, i) = 1/ sqrt((2 * pi)  ^ params.nperv * det(tempMat));
     end
     
+    %CAR Variable Distribution
     for j = 1:prevZ.nCarTargets
+        %Covariance
         tempMat = prevZ.cV{j, i} + params.Qcar2;
+        %Precision
         prevZ.cprec{j, i} = inv(tempMat);
+        %Denum
         prevZ.cnormFull(j, i) = 1/ sqrt((2 * pi)  ^ params.ncarv * det(tempMat));
     end
-        
+    
+    %GROUND Variable Distribution
     for j = 1:prevZ.nFeats
         prevZ.precgf{j, i} = inv(prevZ.gfV{j, i}); % add some safe guard...to avoid overfitting..
         prevZ.normgf(j, i) = 1/ sqrt((2 * pi)  ^ (params.ngfeat - 1) * det(prevZ.gfV{j, i}));
     end
 end
 
+%Find if there are new PERSON (DETECTION) in the current frame
 newdet = [];
 for i = X.idx
     temp = find(i == corres);
     if isempty(temp)
-        newdet = [newdet, i];
+        newdet = [newdet, i]; % Insert the new DETECTION of PERSON
     end
 end
+%UPDATE the corrispondences for PERSON
 corres = [corres, newdet];
+%UPDATE the  TARGETS to TRACK with the new DETECTED PERSONS
 Y = [Y, zeros(3, length(newdet))];
 
+%GROUND
 newgfeats = [];
 for i = KLT.idx
     if sum(prevZ.gfidx == i) == 0
-        newgfeats(end + 1) = i;
+        newgfeats(end + 1) = i; %insert new ground features
     end
 end
 
+%Find if there are new CAR DETECTION in the current frame
 newcdet =[];
 for i = Xc.idx
     temp = find(i == corres_car);
     if isempty(temp)
-        newcdet = [newcdet, i];
+        newcdet = [newcdet, i]; % Insert the new DETECTION of CAR
     end
 end
+%UPDATE the corrispondences for CAR
 corres_car = [corres_car, newcdet];
+
 end
 
 function [sample] = getInitialSample(prevZ, Z, X, Xc, KLT, newdet, newcdet, newgfeats, params, initidx)
@@ -568,14 +654,20 @@ if isfield(params, 'mpcam');
 else
     sample.cam = prevZ.cam(:, initidx);
 end
-% get initial sample
+% get initial sample for PERSON and CAR
 sample.per = reshape(prevZ.per(:, initidx), (params.nperv + 1), prevZ.nTargets);
 sample.car = reshape(prevZ.car(:, initidx), (params.ncarv + 1), prevZ.nCarTargets);
-%%%%% ground feature states
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% GROUND feature states
 sample.gfeat = reshape(prevZ.gfeat(:, initidx), (params.ngfeat), prevZ.nFeats);
 sample.gfeat(3, :) = rand(1, prevZ.nFeats) < sample.gfeat(3, :);
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% PERSON - CAR
 for i = 1:size(sample.per, 2)
+    %                                                media nulla
+                                                     
     sample.per(:, i) = sample.per(:, i) + [mvnrnd(zeros(params.nperv, 1), Z.V{i + 1,initidx} + params.Qper2 + 1e-5 * eye(params.nperv))'; 0];
 end
 
@@ -583,7 +675,8 @@ for i = 1:size(sample.car, 2)
     sample.car(:, i) = sample.car(:, i) + [mvnrnd(zeros(params.ncarv, 1), Z.cV{i, initidx} + params.Qcar2 + 1e-5 * eye(params.ncarv))'; 0];
 end
 
-%%%%%% sample interaction state
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Sample interaction state
 sample.beta = zeros(prevZ.nTargets + length(newdet), prevZ.nTargets + length(newdet), 2);
 for i = 1:size(sample.per, 2)
     for j = (i+1):size(sample.per,2)

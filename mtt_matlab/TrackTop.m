@@ -94,7 +94,8 @@ Z.gfeat = zeros(0, Z.nSamples); % ground features --> EMPTY MATRIX
 Z.gfidx = [];                   % ground features IDX --> Array of Index of Ground Features
 Z.gfcnt = [];                   % ground features count
 
-%% 
+
+%% Variable containg data for MEAN SHIFT TRACKING
 Z.model = []; 
 %% 
 Z.nTargets = 0;

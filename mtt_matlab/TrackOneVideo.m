@@ -8,7 +8,7 @@
 % - fstep: 
 % - framerate, 
 % - iZ : Initial Camera Model
-% - sparams: All Variable Model
+% - sparams:               All Parameters in Model
 % - firstframe
 % - lastframe 
 function [Tracks, CTracks, camTrack, Zs, TP, FP, FN, F, KLTused] = TrackOneVideo(imgdir, detdir, KLT, ext, fstep, framerate, iZ, sparams, firstframe, lastframe)
@@ -55,6 +55,7 @@ nTrackTerm = 4 + 1;
 nInitTrack1 = 5;
 nInitTrack2 = 3;
 
+%% cparams structure
 % should depend on the fstep size
 cparams.appth = -log(.55); % 0.7
 cparams.ovth = -log(.45); %-log();
@@ -78,8 +79,6 @@ for s = 1:length(szkernel)
   kernels(s) = buildKernel( szkernel(s)/2, szkernel(s));
 end
 simth = 0.9;
-%Drawing a Kernel
-%surf(reshape(kernels(61).xs,kernels(61).wd,kernels(61).ht),reshape(kernels(61).ys,kernels(61).wd,kernels(61).ht),reshape(kernels(61).K,kernels(61).wd,kernels(61).ht))
 %Draw some Kernels
 figure(4)
 for kidx=1:9
@@ -87,6 +86,7 @@ for kidx=1:9
     subplot(3,3,kidx)
     plot3(kernels(kidx1).xs,kernels(kidx1).ys,kernels(kidx1).K,'ob')
 end
+
 cparams.nperv = 5;
 % cparams.ncar = 5;
 cparams.ncamv = 5;
@@ -99,7 +99,8 @@ trackcnt = 1;
 targetccnt = 1;
 trackccnt = 1;
 
-%%%% init Z
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Init Z containing all VARIABLES in the MODEL
 Z = iZ;
 % clear Theta, sparams_cam;
 truecnt = []; TP = []; FP = []; FN = []; F = [];
@@ -116,8 +117,8 @@ if(size(KLT.x, 2) >= NFRAMES)
 end
 % speed([1:(firstframe-1), (lastframe+1):NFRAMES]) = [];
 %%%%%%%%%%%
-figure(8);
-figure(9);
+figure(8); %Previous Frame
+figure(9); %Current Frame
 
 %
 % PROCESSING FRAMES by FRAMES
@@ -145,9 +146,12 @@ for i = 1:fstep:length(imfiles)
   
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % READ DETECTIONS in Current Frame of PEOPLE AND CAR
-    % X=[]
-    % Xc= Detected Car
+    % X=  Detected PEOPLE
+    % Xc= Detected CAR
     [X, Xc, det] = getDets(imgdir, detdir, i-1, detth, isz);
+    %Draw detections
+    RectangleFaceAlpha(X,9);
+    RectangleFaceAlpha(Xc,9);
     
     if exist([imgdir fileNameNoExt '_ant.mat'])
         load([imgdir fileNameNoExt '_ant.mat']);
@@ -158,10 +162,11 @@ for i = 1:fstep:length(imfiles)
     end
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
-    %Get The TRACKS  from the previous frame FRAMES i
+    %Get The TRACKS  from the previous frame FRAMES of i
     [Y] = getMStracks(Im, Z, KLT, i, sparams, kernels, szkernel, mstsize, nBit, simth);
-    %%%%%%%%%%%%%% MS track end
-    %% %%%%%%%%%%%%%%%%% correspondence
+    %%%%%%%%%%%%%% MS track end  correspondence
+    %Compute Corrispondences between DETECTED PERSON (X) and PERSON
+    %VARIABLES stored in  the model
     [corres] = getCorrespondence2(Z, X, Y, cparams, sparams);
     zcorres = -1 * ones(1, Z.nTargets);
     for j = 1:Z.nTargets
@@ -171,7 +176,8 @@ for i = 1:fstep:length(imfiles)
         end
     end
     
-    %Compute Corrispondences
+    %Compute Corrispondences between DETECTED CAR (Xc) and CAR VARIABLES 
+    %stored in the model
     [corres_car] = getCorrespondenceCars(Z, Xc, cparams, sparams);
     % take MCMC samples! 
     zcorres_car = -1 * ones(1, Z.nCarTargets);
@@ -217,21 +223,10 @@ for i = 1:fstep:length(imfiles)
     %% %%%%%%%%%%%%% MCMC part
     tic;
     X.speed = 0; %speed(i);
-%     if i == 1
-%         temp = Z.cam;
-%         temp2 = Z.V;
-%     end
-%     [Z, zcorres] = MCMCSamplesJointStatesParametrerization(Z, X, Xc, Y, tKLT, zcorres, sparams);
-    
-%     imshow(Im);
-%     if i == 119
-%         keyboard;
-%     end
-    [Z, zcorres, zcorres_car] = MCMCSamplesJointStatesParametrerizationWCar(Z, X, Xc, Y, tKLT, zcorres, zcorres_car, sparams, i);
-%     if i == 1
-%         Z.cam = temp;
-%         Z.V = temp2 ;
-%     end
+ 
+    [Z, zcorres, zcorres_car] = MCMCSamplesJointStatesParametrerizationWCar...
+        (Z, X, Xc, Y, tKLT, zcorres, zcorres_car, sparams, i);
+ 
     toc;
     %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% display results!!!
     disp(['mean camera : ' num2str(mean(Z.cam, 2)')]);
@@ -243,18 +238,19 @@ for i = 1:fstep:length(imfiles)
     %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
     % Get new features and remove invalid features
     [Z, KLT, KLTused] = postProcessFeatures(Z, KLT, KLTused, i, sparams, isz, gfmatch);
+    %Draw ground features retained for current frame
     figure(9)       
     imshow(Im)
-    plot(KLT.x(Z.gfidx,1),KLT.y(Z.gfidx,1),'b*') % RETAINED KLT for frame 1
+    plot(KLT.x(Z.gfidx,i),KLT.y(Z.gfidx,i),'b*') % RETAINED KLT for frame 1
     
     
     
-    %% % update model ?
+    %% Update Model 
     [Z, targetcnt] = updateMStracker(Im, Z, X, targetcnt, corres, kernels, szkernel, nBit, cparams);
     
     [Z, targetccnt] = updateCarTracks(Im, Z, X, targetccnt, corres_car);
+    
     %% Manage tracks! filter out obvious miss tracks
-%     [Z, hTracks, Tracks, zcorres, trackcnt, trackccnt] = ManageTracks(Z, hTracks, Tracks, zcorres, zcorres_car, trackcnt, trackccnt, i, sparams, fstep, nInitTrack1, nInitTrack2, nTrackTerm);
     [Z, hTracks, Tracks, hCTracks, CTracks, zcorres, zcorres_car, trackcnt, trackccnt] = ManageTracks(Z, hTracks, Tracks, hCTracks, CTracks, zcorres, zcorres_car, trackcnt, trackccnt, i, sparams, fstep, nInitTrack1, nInitTrack2, nTrackTerm);
     % add function for cars.
     
@@ -284,7 +280,7 @@ for j = 1:length(corres)
     [dummy, kidx] = min(abs( szkernel - X.obs(4, j)));
     patch = getImgPatch(Im, X.obs(:, j)');
     patch = uint8(imresize(patch, [szkernel(kidx) szkernel(kidx)/2]));
-
+    
     Qc = bitshift(reshape(patch, [], 3), nBit-8);
 
     Z.model(corres(j)).timg = patch;
@@ -449,12 +445,18 @@ X.pobj = [];
 end
 %function [Y] = getMStracks(Im, Z, KLT, frameidx, sparams, kernels, szkernel, mstsize, nBit, simth)
 % Get the TRACKS hypotesis
+% 
+% PARAMETERS INPUT
 % - Im: Frame 
 % - Z: current model
 % - KLT: klt features
 % - frameidx: frame index 
 % - kernels: KERNELs of different numbers of point
 % - szkernel: Number of points in the i-Kernel --> (szkernel/2,szkernel)
+%
+%  PARAMETERS OUTPUT:
+% - Y: Vector 3x(Number of Target) containing TARGET LOCATION (u,v) and Kernel size
+%      describing each TARGET TRACKS
 function [Y] = getMStracks(Im, Z, KLT, frameidx, sparams, kernels, szkernel, mstsize, nBit, simth)
 %%%%% get MS tracker
 Y = zeros(3, length(Z.model));
@@ -462,6 +464,7 @@ Y = zeros(3, length(Z.model));
 tpan = getRoughCamPan(Z, KLT, frameidx, sparams);
 
 %Only after processing First frame
+% For each TARGET j do Meanshift Tracker
 for j = 1:length(Z.model)
  
     %Get BOUNDING BOX of TARGETs given the current VARIABLE STATES
@@ -476,13 +479,16 @@ for j = 1:length(Z.model)
     % Maximum scale value: ppos(4) * mstsize --> bbox height*mstsize
     cands = find(szkernel >= (ppos(4) / mstsize) & szkernel <= (ppos(4) * mstsize));
     bestSim = 0;        
-    
+    %Tracking with different kernels and save the best RESULT 
     for s = cands
+        %sim: similiarity measure between TARGET MODEL and TARGET CANDIDATE
         [p, pos, Ic, sim] = kernelTrack(Im, Z.model(j).qS, ppos(1:2)', kernels(s), nBit);
         
         if sim > bestSim, best={p, pos, Ic, s}; bestSim = sim; end
     end
-    
+    %If the Similiarity measure is up to the threshoold save in Y: 
+    % 1) Location of the Target --> best{2}
+    % 2) Kernel size associated to best response
     if bestSim > simth
         Y(1:2, j) = best{2};
         Y(3, j) = szkernel(best{4});

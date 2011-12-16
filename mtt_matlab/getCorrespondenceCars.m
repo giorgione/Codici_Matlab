@@ -1,3 +1,7 @@
+%function [corres] = getCorrespondenceCars(Z, Xc, params, sparams, tpan)
+%
+% Solve the association problem between the CAR observation Xc and the CAR
+% Tracked in the previous frame
 
 function [corres] = getCorrespondenceCars(Z, Xc, params, sparams, tpan)
 if nargin < 6
