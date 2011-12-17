@@ -24,7 +24,7 @@
 function [Z, corres, corres_car] = MCMCSamplesJointStatesParametrerizationWCar...
     (prevZ, X, Xc, Y, KLT, corres, corres_car, params, fn)
 
-%% Initialization
+%% Initialization of VARIABLES PARAMTERS: COVARIANCE MATRIX-PRECISION
 [nsamples, N, Y, Z, prevZ, newdet, newcdet, newgfeats, corres, corres_car] =...
     initVariables(prevZ, X, Y, Xc, KLT, corres, corres_car, params);
 
@@ -37,17 +37,29 @@ nantrial = [];
 % sample from prevZ
 % maybe we can go for multiple times to guarantee multi-modality
 for trial = 1:params.nretry
-    tempcnt = 0;     initidx = ceil(rand * prevZ.nSamples);
+    tempcnt = 0;     
     
+    initidx = ceil(rand * prevZ.nSamples);
+    
+    %Get  Samples
     [sample] = getInitialSample(prevZ, Z, X, Xc, KLT, newdet, newcdet, newgfeats, params, initidx);    
+   
+    %Get Priors 
     [prior, prior_car] = initPriors(sample, prevZ, newdet, newcdet, params);
     if (sum(sum(isnan(prior))) > 0) || (sum(sum(prior == inf)) > 0) || (sum(sum(prior <= 0)) > 0)
         keyboard;
     end
     %%%% get the perturbation matrices relative to the variation..
     [params] = getProposalCovariance(prevZ, initidx, newdet, newcdet, params);
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    tempcam = [];    tempper = [];    tempcar = [];    tempbeta = [];    tempgfeat = [];
+    
+    %% Variables to be Sampled
+    tempcam = [];    
+    tempper = [];    
+    tempcar = [];    
+    tempbeta = [];   
+    tempgfeat = [];
+    
+    
     if isfield(params, 'camscnt')
         perTargSample = [params.camscnt * params.thinning, params.perscnt * params.thinning * ones(1, prevZ.nTargets + length(newdet)), params.featscnt * params.thinning * ones(1, prevZ.nFeats), params.carscnt * params.thinning * ones(1, prevZ.nCarTargets + length(newcdet))];
         cumSamples = cumsum(perTargSample) / sum(perTargSample);
@@ -55,41 +67,49 @@ for trial = 1:params.nretry
     end
     
     
-%     probrecord1 = computePosterior(sample, prevZ, X, Y, Xc, KLT, corres, corres_car, params);
     probrecord1 = [];
     probrecord1 = computeLogPosterior(sample, prevZ, X, Y, Xc, KLT, corres, corres_car, params);
     
     max_prob = -Inf;
-    maxsample = sample;
-    
+    maxsample = sample;    
     temptempsamples = [];
+    
+    %Total Number of Sample
     for i = 1:N
         dbgcnt = 0;
         tempcnt = tempcnt + 1;
-        % get sample
-        % select a target or camera or a ground feature
+        % SELECTE which Sampling VARIABLE (CAMERA-PERSON-CAR-GROUND)
         if isfield(params, 'camscnt')
+            
             tid = ceil(rand * (prevZ.nFeats + prevZ.nTargets + length(newdet) + prevZ.nCarTargets + length(newcdet) + 1));
             tid = sum(rand > cumSamples) + 1;
         else
+            
             tid = ceil(rand * (prevZ.nFeats + prevZ.nTargets + length(newdet) + 1));
         end
         
-        oid = 0; tsample = sample;
+        oid = 0; 
+        
+        tsample = sample;
         sid = 0;
+        
         if tid == 1
+            %CAMERA SAMPLING
             oid = 0; sid = tid;
             tsample.cam = tsample.cam + mvnrnd(zeros(1, params.ncamv), params.Pert{1})';
             if (params.useCamAnnealing == 1)
                 params.Pert{1} = params.Pert{1} .* params.AnnealingConst;
             end
-        elseif tid <= 1+size(sample.per, 2)
+            
+        elseif tid <= 1+size(sample.per, 2)  %PERSON SAMPLING
             oid = 1; sid = tid - 1;
             temp = tsample.per(end, tid-1);
             if rand < params.flipObj
                 temp = ~temp;
             end
-            tsample.per(:, tid-1) = [tsample.per(1:params.nperv, tid-1) + mvnrnd(zeros(1, params.nperv), params.Pert{tid})'; temp];
+            tsample.per(:, tid-1) =...
+            [tsample.per(1:params.nperv, tid-1) + mvnrnd(zeros(1, params.nperv), params.Pert{tid})';
+                temp];
             % sample beta!
 
             for j = 1:(tid-2)
@@ -114,7 +134,7 @@ for trial = 1:params.nretry
                     tsample.beta(tid - 1, j, 2) = 1;
                 end
             end
-        elseif tid <= 1 + size(sample.per, 2) + prevZ.nFeats
+        elseif tid <= 1 + size(sample.per, 2) + prevZ.nFeats%FEATURE SAMPLING
             oid = 2; sid = tid - 1 - size(sample.per, 2);
             temp = tsample.gfeat(end, sid);
             if rand < params.flipFeat
@@ -286,26 +306,30 @@ end
 end
 
 function [params] = getProposalCovariance(prevZ, initidx, newdet, newcdet, params)
+%CAMERA COV MATRIX
 params.Pert{1} = (prevZ.V{1, initidx} + params.Qcam) ./ params.mPertCam;
-% params.Pert{1} = (prevZ.V{1, initidx} + params.Qcam) ./ params.mPertCam;
-% params.Pert{1} = diag(min(diag(params.Pert{1})', [1, 0.01, 1e-10, 1, 0.2*pi/180, 0.05, 1e-10, 1e-10].^2));
 
+%PERSON COV MATRIX
+% old targets
 for i = 1:prevZ.nTargets
     params.Pert{i + 1} = (prevZ.V{i+1, initidx} + params.Qper2) ./ params.mPertPer;
 end
+%new detected targets
 for i = 1:length(newdet)
     params.Pert{prevZ.nTargets + i + 1} = params.perPert0 / params.mPertPer;
 end
 
-
+%CAR COV MATRIX 
+% old targets
 for i = 1:prevZ.nCarTargets
     params.cPert{i} = (prevZ.cV{i, initidx} + params.Qcar2) ./ params.mPertCar;
 end
+%new detected targets
 for i = 1:length(newcdet)
     params.cPert{prevZ.nCarTargets + i} = params.carPert0 / params.mPertCar;
 end
 
-
+%GROUND FEATURES COV
 for i = 1:prevZ.nFeats
     params.PertGF{i} = (prevZ.gfV{i, initidx}) ./ params.mPertGF;
 end
@@ -477,9 +501,12 @@ end
 function [prior, prior_car] = initPriors(sample, prevZ, newdet, newcdet, params)
 
 %%%% caching the prior probability for all targets and camera
+%CAMERA and PERSONs
 prior = zeros(prevZ.nTargets + length(newdet) + 1, prevZ.nSamples);
+%CAR
 prior_car = zeros(prevZ.nCarTargets + length(newcdet), prevZ.nSamples);
 
+%CAMERA PRIOR
 prior(1, :) = mexComputeCompleteCameraPrior(sample.cam, prevZ.cam, prevZ.prec(1, :), prevZ.W, prevZ.normFull(1, :), params.dt);
 %%%%%%%%%%%%%%%%%%%%%%%%%% overall prior!
 if isfield(params, 'vpcam')
@@ -487,7 +514,7 @@ if isfield(params, 'vpcam')
     prior(1, :) = prior(1, :) * temp;
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+%TARGET PERSON PRIOR
 for j = 1:size(sample.per, 2)
     if sample.tcnt(j) > 0
         tempper = prevZ.per(((j-1)*(params.nperv + 1)+1):(j*(params.nperv + 1)), :);
@@ -500,7 +527,7 @@ for j = 1:size(sample.per, 2)
     end
     prior(j + 1, :) = mexComputeTargetPrior(sample.per(:, j), sample.tcnt(j), tempper, tempprec, prevZ.W, tempnorm, params, prevZ.nSamples);
 end
-
+%CAR
 for j = 1:size(sample.car, 2)
 %     if sample.tccnt(j) > 0
 %         tempcar = prevZ.car(((j-1)*(params.ncarv + 1)+1):(j*(params.ncarv + 1)), :);
@@ -527,7 +554,8 @@ end
 %function [nsamples, N, Y, Z, prevZ, newdet, newcdet, newgfeats, corres, corres_car] =...
 %   initVariables(prevZ, X, Y, Xc, KLT, corres, corres_car, params)
 %
-% Init the Status of the Variables in the Model
+% Init the Status of the Variables in the Model Covariance MATRIX of
+% CAR/PERSON/CAMERA
 % PARAMETERS INPUT:
 %
 % - prevZ: Estimated Status of Variables in the Model from the previous
@@ -577,16 +605,18 @@ Z.gfV = {}; %GROUND FEATURE COVARIANCE
 % 1) Get Covariance Matrix and Precision for GAUSSIAN DISTRIBUTION
 for i = 1:prevZ.nSamples
     
-    %Get the Covariance Matrix  for the CAMERA
+    %CAMERA PROCESS: Gaussian Process
+    %Get the Covariance Matrix  for the 
     tempMat = prevZ.V{1, i}  + params.Qcam;
     %Get Precision  <--> inverse of covariance MATRIX
     prevZ.prec{1, i} = inv(tempMat);
-    
     %Gaussian Denominator
     prevZ.normFull(1, i) = 1/ sqrt((2 * pi)  ^ size(tempMat, 1) * det(tempMat));
+    
+    %PERSON PROCESS: Gaussian Process
     %PERSON Variable Distribution
     for j = 1:prevZ.nTargets
-        %Covariance
+        %Covariance 
         tempMat = prevZ.V{j+1, i} + params.Qper2;
         %Precision
         prevZ.prec{j+1, i} = inv(tempMat);
@@ -594,6 +624,7 @@ for i = 1:prevZ.nSamples
         prevZ.normFull(j + 1, i) = 1/ sqrt((2 * pi)  ^ params.nperv * det(tempMat));
     end
     
+    %CAR PROCESS: Gaussian Process
     %CAR Variable Distribution
     for j = 1:prevZ.nCarTargets
         %Covariance
@@ -610,7 +641,9 @@ for i = 1:prevZ.nSamples
         prevZ.normgf(j, i) = 1/ sqrt((2 * pi)  ^ (params.ngfeat - 1) * det(prevZ.gfV{j, i}));
     end
 end
-
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% STORE NEW DETECTIONS
+%
 %Find if there are new PERSON (DETECTION) in the current frame
 newdet = [];
 for i = X.idx
@@ -644,8 +677,31 @@ end
 corres_car = [corres_car, newcdet];
 
 end
-
-function [sample] = getInitialSample(prevZ, Z, X, Xc, KLT, newdet, newcdet, newgfeats, params, initidx)
+%function [sample] = ...
+%getInitialSample(prevZ, Z, X, Xc, KLT, newdet, newcdet, newgfeats, params, initidx)
+%
+% Start Sampling for the current TIME STEP where:
+% - prevZ: is the posterior estimate from the PREVIOUS state
+% - Z: is the current STATE VARIABLE
+%
+% PARAMETERS INPUT
+% - X: PERSON observation
+% - Xc: CAR observation
+% - Y: TRACKS from previous frame
+% - KLT: GROUND FEATURES
+% - newdet:  New PERSON DETECTION
+% - newcdet: New CAR DETECTION
+% - newgfeats: New GROUND DETECTION
+% - corres:  Corrispondences for Person
+% - corres_car: Corrispondences for Car
+% - params:  Model Parameters
+% - initidx :   Index of Which Configuration to use
+%
+% OUTPUT
+%
+% sample: Sample generated for the VARIABLES in the Models
+function [sample] = ...
+    getInitialSample(prevZ, Z, X, Xc, KLT, newdet, newcdet, newgfeats, params, initidx)
 
 if isfield(params, 'mpcam');
     mcam = mean(prevZ.cam, 2);
@@ -654,46 +710,71 @@ if isfield(params, 'mpcam');
 else
     sample.cam = prevZ.cam(:, initidx);
 end
-% get initial sample for PERSON and CAR
+% Get Mean Value from previous state for PERSON and CAR
 sample.per = reshape(prevZ.per(:, initidx), (params.nperv + 1), prevZ.nTargets);
 sample.car = reshape(prevZ.car(:, initidx), (params.ncarv + 1), prevZ.nCarTargets);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% GROUND feature states
+% Get Mean Value  from previous state for GROUND feature states
 sample.gfeat = reshape(prevZ.gfeat(:, initidx), (params.ngfeat), prevZ.nFeats);
 sample.gfeat(3, :) = rand(1, prevZ.nFeats) < sample.gfeat(3, :);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% PERSON - CAR
+% PERSON - CAR are Multivariate GAUSSIAN PROCESS with:
+%
+%  mean: Value from previuos state
+%  Variance: Variance stored in Z + Additive Noise
+
+%PERSONs
+Mper=zeros(params.nperv, 1);
+VAddNoise= params.Qper2 + 1e-5 * eye(params.nperv)';
 for i = 1:size(sample.per, 2)
     %                                                media nulla
                                                      
-    sample.per(:, i) = sample.per(:, i) + [mvnrnd(zeros(params.nperv, 1), Z.V{i + 1,initidx} + params.Qper2 + 1e-5 * eye(params.nperv))'; 0];
+    sample.per(:, i) = sample.per(:, i) + [mvnrnd(Mper, Z.V{i + 1,initidx} +VAddNoise); 0];
 end
 
+%CARs
+Mcar=zeros(params.ncarv, 1);
+VAddNoise= params.Qcar2 + 1e-5 * eye(params.ncarv)';
 for i = 1:size(sample.car, 2)
-    sample.car(:, i) = sample.car(:, i) + [mvnrnd(zeros(params.ncarv, 1), Z.cV{i, initidx} + params.Qcar2 + 1e-5 * eye(params.ncarv))'; 0];
+    sample.car(:, i) = sample.car(:, i) + [mvnrnd(zMcar, Z.cV{i, initidx} + VAddNoise); 0];
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Sample interaction state
+% SAMPLE INTERACTION STATE Beta(i,j,type) between TARGET (i,j)
+%
+%Get the number of Samples taking in account the NEW DETECTIONS and the
+%number of targets from the previous frame
+% 2 --> Indicate the TYPE of interaction modeled ATTRACTION - REPULSION
 sample.beta = zeros(prevZ.nTargets + length(newdet), prevZ.nTargets + length(newdet), 2);
+
+%Beta as UPPER TRIANGULAR MATRIX
 for i = 1:size(sample.per, 2)
+   
     for j = (i+1):size(sample.per,2)
+        %Generate the cumulative distribution for beta from the previous
+        %state
         ratio = cumsum(prevZ.beta(i, j, :, initidx));
+        %Set to 0
         sample.beta(i, j, 1:2) = 0;
+        
+        %Inverse Sampling
         sample.beta(i, j, sum(rand > ratio) + 1) = 1;
     end
-    sample.beta(i, i, 1) = 0; % make square for convenienece
+    %A Target cannot' interact with himself
+    sample.beta(i, i, 1) = 0; % make square for convenienece: ???
 end
 
+%TARGET VARIABLE
 sample.tcnt = prevZ.tcnt;
 for i = newdet
-    % compute inverse projection
+    % compute inverse projection of PERSON
     % randomly sample the humanness by looking at the heights...
     x = X.obs(:, i);
     x = [x(1) + x(3) / 2, x(2) + x(4), x(4)];
     temp = getIProjection(x', sample.cam);
+    
     if sum(isnan(temp)) > 0
         x = x + 2 * randn(1, 3);
         temp = getIProjection(x', sample.cam);
@@ -704,7 +785,7 @@ end
 
 sample.tccnt = prevZ.tccnt;
 for i = newcdet
-    % compute inverse projection
+    % compute inverse projection of CAR
     % randomly sample the humanness by looking at the heights...
     x = Xc.obs(:, i);
     x = [x(1) + x(3) / 2, x(2) + x(4), x(3), x(4)];

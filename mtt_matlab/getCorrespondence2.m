@@ -1,8 +1,10 @@
 % function [corres] = getCorrespondence2(Z, X, Y, params, sparams, tpan)
 %
-% Generate the first part of the AFFINITY MATRIX
+% Generate the  corrispondences between DETECTIONs (in X) and PREDICTED 3D
+% target status in the previous frame (in Z.per)
 %
-%
+% -corres: correspondece Vector containing the idx of the Detected Object X
+%          to which correspond the 
 function [corres] = getCorrespondence2(Z, X, Y, params, sparams, tpan)
 %Set the panning angle if unspecified
 if nargin < 6

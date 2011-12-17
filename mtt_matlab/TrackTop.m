@@ -113,6 +113,11 @@ Z.caridx = [];
 % sparams.nodraw = 1;
 max_frames = 500;
 
+figure(11);
+title('3D Data'); grid on;
+plot3(0,0,0,'oy','MarkerFaceColor','y','MarkerEdgeColor','y','MarkerSize',5);
+hold on;
+
 % KLT = sift_read_featuretable(imgdir, max_frames);
 %load KLT features for the video
 load('KLT500.mat');

@@ -3,7 +3,11 @@ n=length(Detections);
 figure(FigHandle)
 
 for i=1:n
+    % Get BBOX of Detection
     X=Detections(i).obs
+    % X(1),X(2) --> Upper-Left corner
+    % X(3) width
+    % X(4) height
     if(isempty(X))
         break;
     end
