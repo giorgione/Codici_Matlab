@@ -117,8 +117,7 @@ if(size(KLT.x, 2) >= NFRAMES)
 end
 % speed([1:(firstframe-1), (lastframe+1):NFRAMES]) = [];
 %%%%%%%%%%%
-figure(8); %Previous Frame
-figure(9); %Current Frame
+
 
 %
 % PROCESSING FRAMES by FRAMES
@@ -226,8 +225,9 @@ for i = 1:fstep:length(imfiles)
  
     [Z, zcorres, zcorres_car] = MCMCSamplesJointStatesParametrerizationWCar...
         (Z, X, Xc, Y, tKLT, zcorres, zcorres_car, sparams, i);
- 
     toc;
+    DrawCameraSample(Z.cam,11)
+   
     %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% display results!!!
     disp(['mean camera : ' num2str(mean(Z.cam, 2)')]);
     disp(['mean car : ' num2str(mean(Z.car, 2)')]);

@@ -80,6 +80,8 @@ Z.nSamples = 1;
 % focal length, camera height(meter), x camera center(pixel), horizon
 % (pixel), initial angle, initial speed, camera's x location, camera's z location
 Z.cam = [1200 1.0 imsize(1)/2 ihorizon 0 11 0 0]';
+
+
 %Camera MATRIX PROCESS covariance
 Z.V{1, 1} = diag([1 0.01 1e-6 10 1e-6 1 1e-6 1e-6]).^2;
 % Initial weight
@@ -112,11 +114,18 @@ Z.caridx = [];
 
 % sparams.nodraw = 1;
 max_frames = 500;
+myfig=11;
 
-figure(11);
-title('3D Data'); grid on;
+figure(8); %Previous Frame
+figure(9); %Current Frame
+figure(myfig); % 3D Reconstruction
+
+title('3D Data'); grid on;hold on;
 plot3(0,0,0,'oy','MarkerFaceColor','y','MarkerEdgeColor','y','MarkerSize',5);
-hold on;
+DrawCameraSample(Z.cam,myfig)
+xlabel('X')
+ylabel('Y')
+zlabel('Z') 
 
 % KLT = sift_read_featuretable(imgdir, max_frames);
 %load KLT features for the video

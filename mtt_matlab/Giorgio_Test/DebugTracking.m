@@ -1,7 +1,7 @@
 %Tracking MCMC
 clc;clear; close all;
 imgdir='/home/gemiggio/Documents/MATLAB/ToyotaData/left_images/';
-detdir='/home/gemiggio/Documents/MATLAB/ToyotaData/detections/';
+detdir='/home/gemiggio/Documents/MATLAB/ToyotaData/detections';
 
 %imgdir='/home/giorgio/Documents/Codici_Matlab/ToyotaData_20nly/left_images/';
 %detdir='/home/giorgio/Documents/Codici_Matlab/ToyotaData_20nly/detections/';

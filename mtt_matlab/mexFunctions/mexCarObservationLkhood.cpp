@@ -87,7 +87,8 @@ void mexFunction( int nlhs, mxArray *plhs[],
     *lkhood = 0;
     
     pred = getProjection(state, cam, camlen);
-    if (nXobs > 0)    {
+    if (nXobs > 0)    
+    {
         ImObs[0] = Xobs[0] + Xobs[2] / 2;
         ImObs[1] = Xobs[1] + Xobs[3];
         ImObs[2] = Xobs[2];
@@ -104,7 +105,8 @@ void mexFunction( int nlhs, mxArray *plhs[],
             *lkhood += log(0.0001);
         }
     }
-    else    {
+    else    
+    {
         if (state[6] == 1) {
             *lkhood += log(0.3);
         }

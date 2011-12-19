@@ -42,7 +42,6 @@ plot3(T(1),T(2),T(3),'oy','MarkerFaceColor','y','MarkerEdgeColor','y','MarkerSiz
 
 %Assi Mondo
 Aw=100*eye(3);
-figure(1)
 plot3(0,0,0,'or','MarkerFaceColor','b','MarkerEdgeColor','b','MarkerSize',5);
 coloreM=[1 0 0];
 colorX=[1 0 0];
@@ -68,14 +67,16 @@ Ac=W2C(tx,Aw,repmat([0;0;0],1,3));
 %Vettore3D(Ac(1,3),Ac(2,3),Ac(3,3),colorZ,1) %Z in blue
 
 %Disegno i Vettori applicati in T
-Vettore3D_Applicato(T,Ac(1,1),Ac(2,1),Ac(3,1),colorX)
-Vettore3D_Applicato(T,Ac(1,2),Ac(2,2),Ac(3,2),colorY)
-Vettore3D_Applicato(T,Ac(1,3),Ac(2,3),Ac(3,3),colorZ)
-
 %La camera e allineata al piano di terra e l'asse focale e l'asse Y
 AsseU=w*Ac(:,1)./norm(Ac(:,1));
 AsseV=h*Ac(:,3)./norm(Ac(:,3));
 DisegnaPiano(AsseU,AsseV,T);
+
+Vettore3D_Applicato(T,Ac(1,1),Ac(2,1),Ac(3,1),colorX)
+Vettore3D_Applicato(T,Ac(1,2),Ac(2,2),Ac(3,2),colorY)
+Vettore3D_Applicato(T,Ac(1,3),Ac(2,3),Ac(3,3),colorZ)
+drawnow
+
 
 %Matrici di Rotazione tra Mondo e Camera e determinata dall' Orientazione
 %della Camera.
@@ -90,6 +91,7 @@ Prj=[CO Zw];
 line(Prj(1,:),Prj(2,:),Prj(3,:),'Color','r','LineStyle','-')
 Prj=[[0;0;0] CO];
 line(Prj(1,:),Prj(2,:),Prj(3,:),'Color','r','LineStyle','-')
+drawnow
 
 %punto Zw sul piano di terra
 Zwo=[Zw-[0;0;Zw(3)]];

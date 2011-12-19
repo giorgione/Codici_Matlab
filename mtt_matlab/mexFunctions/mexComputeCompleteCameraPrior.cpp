@@ -86,7 +86,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
 		printf("Invalid number of inputs %d\n",nrhs);
 		return;
 	}
-    
+    //Get Input data
     double *cam = (double*)mxGetData(prhs[0]);
     double *pSamples = (double*)mxGetData(prhs[1]);
     double *w = (double*)mxGetData(prhs[3]);
@@ -106,10 +106,12 @@ void mexFunction( int nlhs, mxArray *plhs[],
     
     msize scam, spSamples, sPrec, sTemp1, sTemp2, skltPrec;
     
-    scam.nrows = mxGetM(prhs[0]);    scam.ncols = mxGetN(prhs[0]);    
-    spSamples.nrows = mxGetM(prhs[1]);    spSamples.ncols = mxGetN(prhs[1]);
-    sPrec.nrows = scam.nrows;    sPrec.ncols = scam.nrows;
+    scam.nrows = mxGetM(prhs[0]);    scam.ncols = mxGetN(prhs[0]);  
     
+    spSamples.nrows = mxGetM(prhs[1]);    spSamples.ncols = mxGetN(prhs[1]);
+    
+    sPrec.nrows = scam.nrows;    sPrec.ncols = scam.nrows;
+    //OUTPUT DATA
     plhs[0] = mxCreateDoubleMatrix(1, spSamples.ncols, mxREAL);
     prior = (double*)mxGetData(plhs[0]);
     
@@ -126,7 +128,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
         for(int j = 0; j < scam.nrows; j++) {
             tempdiff[j] = *(cam + j) - *(pSamples + j + (i * spSamples.nrows));
 //             tempdiff[j] = *(cam + j) - *(tempcam + j);
-//             printf("%f, ", tempdiff[j]);
+            // printf("%f, ", tempdiff[j]);
         }
 //         printf("\n");
         MatrixMultiplication(tempdiff, prec, sTemp1, sPrec, tempmult);
