@@ -23,7 +23,10 @@
 %
 % author: Giorgio Gemignani
 
-function Vettore3D_Applicato(Xo,x,y,z,colore)
+function Vettore3D_Applicato(Xo,x,y,z,colore,myFig)
+if nargin ==6
+    figure(myFig)
+end
 colormap(colore);
 %vertice iniziale del vettore
 P1=[0 0 0];

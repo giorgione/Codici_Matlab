@@ -1,4 +1,7 @@
-function DisegnaPiano(a,b,Xo)
+function DisegnaPiano(a,b,Xo,myFig)
+if nargin ==4
+    figure(myFig)
+end
 %Disegna lo span(a,b): spazio generato dai Vettori a e b
 %Piano Per Xo=(x1,y2,z3)  di direttori (a,b)
 % x = 	x1 	+ 	a1u 	+ 	b1t
