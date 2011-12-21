@@ -114,11 +114,15 @@ Z.caridx = [];
 
 % sparams.nodraw = 1;
 max_frames = 500;
+
+%first frame - last frame
+firstframe=300;
+lastframe=500;
 myfig=11;
 
-figure(8); %Previous Frame
-figure(9); %Current Frame
-figure(myfig); % 3D Reconstruction
+figure(8);      %Previous Frame
+figure(9);      %Current Frame
+figure(myfig);  % 3D Reconstruction
 
 title('3D Data'); grid on;hold on;
 plot3(0,0,0,'oy','MarkerFaceColor','y','MarkerEdgeColor','y','MarkerSize',5);
@@ -143,7 +147,7 @@ for th = thlist
     sparams.detth = th;
     disp(['Begin Processing ' imgdir ' with threshold = ' num2str(th)]);
     
-    [Tracks, CTracks, camTrack, Zs, TP, FP, FN, F, KLTused] = TrackOneVideo(imgdir, detdir, KLT, ext, fstep, framerate, Z, sparams, 1, max_frames);
+    [Tracks, CTracks, camTrack, Zs, TP, FP, FN, F, KLTused] = TrackOneVideo(imgdir, detdir, KLT, ext, fstep, framerate, Z, sparams, firstframe, lastframe);
     
     % don't need these later. Erase these..
     for i = 1:length(Zs)

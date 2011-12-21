@@ -148,7 +148,7 @@ for i = 1:fstep:length(imfiles)
     % READ DETECTIONS in Current Frame of PEOPLE AND CAR
     % X=  Detected PEOPLE
     % Xc= Detected CAR
-    [X, Xc, det] = getDets(imgdir, detdir, i-1, detth, isz);
+    [X, Xc, det] = getDets(imgdir, detdir,firstframe-1+i-1, detth, isz);
     %Draw detections
     RectangleFaceAlpha(X,9,Colore);
     RectangleFaceAlpha(Xc,9,Colore);
@@ -163,14 +163,27 @@ for i = 1:fstep:length(imfiles)
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
     %Get The TRACKS  from the previous frame FRAMES of i
+    %Y: Vector 3x(Number of Target) containing TARGET LOCATION (u,v) and Kernel size
+    %      describing each TARGET TRACKS
+    %
     [Y] = getMStracks(Im, Z, KLT, i, sparams, kernels, szkernel, mstsize, nBit, simth);
+    if ~isempty(Y)
+        figure(9)
+        plot(Y(1,:),Y(2,:),'+','MarkerFaceColor',Colore,'MarkerEdgeColor',Colore,'MarkerSize',5);
+    end
+    
     %%%%%%%%%%%%%% MS track end  correspondence
     %Compute Corrispondences between DETECTED PERSON (X) and PERSON
     %VARIABLES stored in  the model
     [corres] = getCorrespondence2(Z, X, Y, cparams, sparams);
+    % zcores: Indici delle Corrispondenze
+    %              -1 se il TARGET j non ha corrispondenza
+    % zcores(j) =
+    %               i tale che corres(i)=j se il TARGET j ha corrispondenza
+    %               in corres(i)
     zcorres = -1 * ones(1, Z.nTargets);
     for j = 1:Z.nTargets
-        temp = find(corres == j);
+        temp = find(corres == j);% se non e' vuoto
         if ~isempty(temp)
             zcorres(j) = temp;
         end
@@ -179,11 +192,16 @@ for i = 1:fstep:length(imfiles)
     %Compute Corrispondences between DETECTED CAR (Xc) and CAR VARIABLES 
     %stored in the model
     [corres_car] = getCorrespondenceCars(Z, Xc, cparams, sparams);
+     % zcores: Indici delle Corrispondenze
+    %              -1 se il TARGET j non ha corrispondenza
+    % zcores(j) =
+    %               i tale che corres(i)=j se il TARGET j ha corrispondenza
+    %               in corres(i)
     % take MCMC samples! 
     zcorres_car = -1 * ones(1, Z.nCarTargets);
     for j = 1:Z.nCarTargets
         temp = find(corres_car == j);
-        if ~isempty(temp)
+        if ~isempty(temp) % se non e' vuoto
             zcorres_car(j) = temp;
         end
     end
@@ -261,7 +279,7 @@ for i = 1:fstep:length(imfiles)
     [Tracks] = inferOcclusion(Tracks, Z, i, sparams);
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %% %%% draw trajectories!
-    if 1
+    if 0
 %         try
             [TP(i), FP(i), FN(i)] = showOneFrame(Im, i, Z, Tracks, CTracks, oneFrameAnnotation, sparams, KLT, tKLT, det, Xc, Y, 0);
             %close(2);
@@ -275,38 +293,57 @@ for i = 1:fstep:length(imfiles)
     Zs(i)=Z;
 end
 end
-
+% function [Z, targetcnt] = 
+%       updateMStracker(Im, Z, X, targetcnt, corres, kernels, szkernel, nBit, cparams)
+%
+%Genero i dati necessari al tracker per i NUOVI TARGET
+%
+% Aggiorna i dati per i TARGET INSEGUITI
 function [Z, targetcnt] = updateMStracker(Im, Z, X, targetcnt, corres, kernels, szkernel, nBit, cparams)
+%UPDATE dei TARGET GIA INDIVIDUATI CHE STO TRACCIANDO
 for j = 1:length(corres)
+    %Analizzo i Target per i quali esiste gia una corrispondenza
     if corres(j) == 0, continue; end
-
+    %Cerco la scala del kernel piu vicina alla scala del Target
     [dummy, kidx] = min(abs( szkernel - X.obs(4, j)));
+    %Estraggo la patch del TARGET
     patch = getImgPatch(Im, X.obs(:, j)');
     patch = uint8(imresize(patch, [szkernel(kidx) szkernel(kidx)/2]));
-    
+    %Ridugo il numero di bit per rappresentare il colore
     Qc = bitshift(reshape(patch, [], 3), nBit-8);
-
+  
+    %Salvo la patch del TARGET
     Z.model(corres(j)).timg = patch;
+    
+    %Calcolo la Distribuzione di Colore del TARGET
     Z.model(corres(j)).qS = (1 - cparams.adf) * buildHist( Qc, kernels(kidx), nBit ) + cparams.adf * Z.model(corres(j)).qS;
     % update this by Z estimation..
 end
-
+%NUOVI TARGET INDIVIDUATI
 newtracks = find(corres == 0);
 for j = newtracks
     [dummy, kidx] = min(abs(szkernel - X.obs(4, j)));
-
+    %Calcolo la PATCH per l'oggeto
     patch = getImgPatch(Im, X.obs(:, j)');
     patch = uint8(imresize(patch, [szkernel(kidx) szkernel(kidx)/2]));
-
+    %Riduzione numero bit
     Qc = bitshift(reshape(patch, [], 3), nBit-8);
-
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %Genero la struttura model contente il TEMPLATE del target
+    %Salvo la patch
     model.timg = patch;
+    %Salvo l'istogramma calcolato mediante kernel
     model.qS = buildHist( Qc, kernels(kidx), nBit );
-    model.ppos = [X.obs(1:2, j) + X.obs(3:4, j) / 2; X.obs(3:4, j)];        
+    %Salvo la posizione Iniziale cui e' situata il TARGET
+    model.ppos = [ X.obs(1:2, j) + X.obs(3:4, j) / 2; X.obs(3:4, j)];        
+    %aggiungi a Z.model
     Z.model = [Z.model, model];
-
+    
+    %Salvo l'id del Target 
     Z.peridx = [Z.peridx, targetcnt];
+    %Incrementa il numero di Target i z
     Z.nTargets = Z.nTargets + 1;
+    %Numero totale di target rilevati
     targetcnt = targetcnt + 1;
 end
 
@@ -493,8 +530,8 @@ for j = 1:length(Z.model)
     % 1) Location of the Target --> best{2}
     % 2) Kernel size associated to best response
     if bestSim > simth
-        Y(1:2, j) = best{2};
-        Y(3, j) = szkernel(best{4});
+        Y(1:2, j) = best{2};            %position {u,v}
+        Y(3, j) = szkernel(best{4});    %scale
     end
 end
 %%%%%%%%%%%%%% MS track end

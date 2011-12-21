@@ -41,21 +41,42 @@ nantrial = [];
 % initialize the sample
 % sample from prevZ
 % maybe we can go for multiple times to guarantee multi-modality
+TrialFig=1:params.nretry;
+TrialFig=20+TrialFig;
 for trial = 1:params.nretry
     tempcnt = 0;     
+    figure(TrialFig(trial)); 
+    title(['Trial ' num2str(trial)]);grid on; hold on;
+    Colore=rand(1,3);
     
+    %Genero una Variable a caso nel Modello
     initidx = ceil(rand * prevZ.nSamples);
     
     %Get the FIRST SAMPLE: STARTING POINT
     [sample] = getInitialSample(prevZ, Z, X, Xc, KLT, newdet, newcdet, newgfeats, params, initidx);    
-   
-    %Get Priors 
+    %DrawSample(sample,TrialFig(trial),ColorTrial) 
+    % Disegno la posizione della Camera
+    plot3(sample.cam(7,:),sample.cam(8,:),sample.cam(2,:),'o','MarkerFaceColor',Colore,'MarkerEdgeColor',Colore,'MarkerSize',5);    %Get Priors 
+    % Disegno la posizione dei TARGET
+    plot3(sample.car(1,:),sample.car(2,:),sample.car(3,:),'d','MarkerFaceColor',Colore,'MarkerEdgeColor',Colore,'MarkerSize',5);    %Get Priors 
+     
+    plot3(sample.per(1,:),sample.per(2,:),sample.per(3,:),'s','MarkerFaceColor',Colore,'MarkerEdgeColor',Colore,'MarkerSize',5);    %Get Priors 
+    
     [prior, prior_car] = initPriors(sample, prevZ, newdet, newcdet, params);
     if (sum(sum(isnan(prior))) > 0) || (sum(sum(prior == inf)) > 0) || (sum(sum(prior <= 0)) > 0)
         keyboard;
     end
     
-    %%%% UPDATE COVARIANCE MATRIX for Each VARIABLE
+    %%%% UPDATE COVARIANCE MATRIX for Each VARIABLE in the Model:
+    %
+    % - params.Pert{1} = CAMERA COV. MATRIX
+    %
+    % - params.Pert{[2:prevZ.nTargets][prevZ.nTargets:prevZ.nTargets+length(newdet)]}
+    %                  old detections             new detections 
+    %
+    % - params.cPert{[1:prevZ.nCarTargets][prevZ.nCarTargets:length(newcdet)]}
+    %                  old detections         new detections
+    %
     [params] = getProposalCovariance(prevZ, initidx, newdet, newcdet, params);
     
     %% Variables to be Sampled
@@ -131,7 +152,7 @@ for trial = 1:params.nretry
         
         oid = 0; 
         sid = 0;
-        
+        %tsample e' settato con il campione precedente
         tsample = sample;
         
         
@@ -223,6 +244,8 @@ for trial = 1:params.nretry
         if ar > rand
             %Store the current temporary sample
             sample = tsample;  
+         
+            
             prior = tprior;
             prior_car = tprior_car;
             
@@ -259,7 +282,21 @@ for trial = 1:params.nretry
             temptempsamples = [temptempsamples, sample];
         end
     end
+    %DrawSample(maxsample,TrialFig(trial),ColorTrial) ;
+     % Disegno la posizione della Camera
+    if isempty(tempcam)==0 
+        plot3(tempcam(7,:),tempcam(8,:),tempcam(2,:),'o','MarkerFaceColor',Colore,'MarkerEdgeColor',Colore,'MarkerSize',5);    %Get Priors 
+    end
+        % Disegno la posizione dei TARGET
+    if isempty(tempcar)==0
+        plot3(tempcar(1,:),tempcar(2,:),tempcar(3,:),'d','MarkerFaceColor',Colore,'MarkerEdgeColor',Colore,'MarkerSize',5);    %Get Priors 
+    end
+    if isempty(tempper)==0
+        plot3(tempper(1,:),tempper(2,:),tempper(3,:),'s','MarkerFaceColor',Colore,'MarkerEdgeColor',Colore,'MarkerSize',5);    %Get Priors 
+    end
     
+    
+    %% N iterations executed for trial
     figure(2);
     subplot(211); plot(probrecord1(500:end));title('Acceptance Ratio 500')
     subplot(212); plot(probrecord2);title('Acceptance Ratio All')
@@ -364,8 +401,8 @@ for trial = 1:params.nretry
     if max_prob == -Inf
         nantrial(end + 1) = trial;
     end
-end
-
+end 
+%% All trial Executed: in output genera i campioni per ogni trial
 Z.cam(:, nantrial) = [];
 Z.car(:, nantrial) = [];
 Z.per(:, nantrial) = [];

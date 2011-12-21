@@ -1,4 +1,4 @@
-function DisegnaPiano(a,b,Xo,myFig)
+function DisegnaPiano(a,b,Xo,myFig,Colore)
 if nargin ==4
     figure(myFig)
 end
@@ -21,7 +21,7 @@ X=reshape(X,m,n);
 Y=reshape(Y,m,n);
 Z=reshape(Z,m,n);
 %Piano Generato dai Vettori a,b
-mesh(X,Y,Z,'FaceColor','b')
+mesh(X,Y,Z,'FaceColor',Colore)
 alpha(.4) 
  
 %daspect([1 1 1]);

@@ -32,13 +32,14 @@ h=20;  kv=1;
 tx=1;
  
 % Posizione del Centro Ottico C0
-Xt=0;
-Zt=0; %profondita
+Xt=10;
+Zt=10; %profondita
 Ht=0;  %altezza della camera
 T=[Xt Zt Ht].';
 CO=T;
+
 subplot(1,2,1); hold on
-plot3(T(1),T(2),T(3),'oy','MarkerFaceColor','y','MarkerEdgeColor','y','MarkerSize',5);
+plot3(CO(1),CO(2),CO(3),'oy','MarkerFaceColor','y','MarkerEdgeColor','y','MarkerSize',5);
 
 %Assi Mondo
 Aw=100*eye(3);
@@ -62,21 +63,30 @@ title('WORLD REFERENCE SYSTEM')
 %Verifico che RW2C e' una ROTAZIONE sull' asse Z
 Ac=W2C(tx,Aw,repmat([0;0;0],1,3));
 %Sistema di Riferimento Mondo centrato nell'origine
-%Vettore3D(Ac(1,1),Ac(2,1),Ac(3,1),colorX,1) %X in red
-%Vettore3D(Ac(1,2),Ac(2,2),Ac(3,2),colorY,1) %Y in green
-%Vettore3D(Ac(1,3),Ac(2,3),Ac(3,3),colorZ,1) %Z in blue
+% Vettore3D(Ac(1,1),Ac(2,1),Ac(3,1),colorX,1) %X in red
+% Vettore3D(Ac(1,2),Ac(2,2),Ac(3,2),colorY,1) %Y in green
+% Vettore3D(Ac(1,3),Ac(2,3),Ac(3,3),colorZ,1) %Z in blue
 
-%Disegno i Vettori applicati in T
+%Disegno i Vettori applicati in C0
 %La camera e allineata al piano di terra e l'asse focale e l'asse Y
 AsseU=w*Ac(:,1)./norm(Ac(:,1));
 AsseV=h*Ac(:,3)./norm(Ac(:,3));
-DisegnaPiano(AsseU,AsseV,T,1,colorZ);
+%Centro Camera
+CC=CO+fo*Ac(:,2)/norm(Ac(:,2));
+plot3(CC(1),CC(2),CC(3),'oy','MarkerFaceColor','y','MarkerEdgeColor','y','MarkerSize',5);
 
+
+DisegnaPiano(AsseU,AsseV,CC,1,colorZ);
+%Normalizzo gli assi Camera
+Ac(:,1)=Ac(:,1)/norm(Ac(:,1));
+Ac(:,2)=Ac(:,2)/norm(Ac(:,2));
+Ac(:,3)=Ac(:,3)/norm(Ac(:,3));
+Ac=10*Ac;
 Vettore3D_Applicato(T,Ac(1,1),Ac(2,1),Ac(3,1),colorX)
 Vettore3D_Applicato(T,Ac(1,2),Ac(2,2),Ac(3,2),colorY)
 Vettore3D_Applicato(T,Ac(1,3),Ac(2,3),Ac(3,3),colorZ)
 drawnow
-
+axis equal
 
 %Matrici di Rotazione tra Mondo e Camera e determinata dall' Orientazione
 %della Camera.
@@ -129,6 +139,7 @@ y=reshape(Zw(2,:),m,n);
 z=reshape(Zw(3,:),m,n);
 subplot(1,2,1)
 surf(x,y,z)  % sphere centered at origin
+axis equal
 
 subplot(1,2,2)
 Pu=ProJ(Zw,fo,Uo,Vo,tx,repmat(T,1,m*n));
