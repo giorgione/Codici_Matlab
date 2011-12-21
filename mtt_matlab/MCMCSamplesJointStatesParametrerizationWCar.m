@@ -46,7 +46,7 @@ for trial = 1:params.nretry
     
     initidx = ceil(rand * prevZ.nSamples);
     
-    %Get the FIRST SAMPLE: starting Point
+    %Get the FIRST SAMPLE: STARTING POINT
     [sample] = getInitialSample(prevZ, Z, X, Xc, KLT, newdet, newcdet, newgfeats, params, initidx);    
    
     %Get Priors 
@@ -67,12 +67,19 @@ for trial = 1:params.nretry
     
     
     if isfield(params, 'camscnt')
-        perTargSample = [params.camscnt * params.thinning, params.perscnt * params.thinning * ones(1, prevZ.nTargets + length(newdet)), params.featscnt * params.thinning * ones(1, prevZ.nFeats), params.carscnt * params.thinning * ones(1, prevZ.nCarTargets + length(newcdet))];
+        % For each Target how many sample do we need
+        %                         
+        perTargSample = [params.camscnt * params.thinning, ... %camera
+                 params.perscnt * params.thinning * ones(1, prevZ.nTargets + length(newdet)),... %PERSON
+                 params.featscnt * params.thinning * ones(1, prevZ.nFeats),.... %GROUND FEAT
+                 params.carscnt * params.thinning * ones(1, prevZ.nCarTargets + length(newcdet))]; %CAR
+        
+             %Cumulative Distribution
         cumSamples = cumsum(perTargSample) / sum(perTargSample);
         N = params.burnin + sum(perTargSample);
     end
     
-    
+    %Calcolo la LOG POSTERIOR per lo STARTING POINT
     probrecord1 = [];
     probrecord1 = computeLogPosterior(sample, prevZ, X, Y, Xc, KLT, corres, corres_car, params);
     
@@ -80,44 +87,83 @@ for trial = 1:params.nretry
     maxsample = sample;    
     temptempsamples = [];
     
-    %Total Number of Sample
+    %Total Number of ITERATION of SAMPLING
     for i = 1:N
         dbgcnt = 0;
         tempcnt = tempcnt + 1;
-        % SELECT  which Sampling VARIABLE (CAMERA-PERSON-CAR-GROUND)
+      
+        % SELECT  which Sampling VARIABLE (CAMERA-PERSON-CAR-GROUND):
+        %
+        % tid: index of target variable to be sampled
+        % Devo generare campioni per ogni id nell' insieme 
+        %
+        %          [1,2,...,NVariables] 
+        %dove:
+        % { 1 ,    --> Variabile Camera 
+        %   2
+        %   ..     --> Targets Persone gia' presenti nel modello
+        %   ..          
+        %   2+prevZ.nTargets,                
+        %   2+prevZ.nTargets+1
+        %   ..                  --> Nuove Persone rilevate dal detector
+        %   ..
+        %   2+prevZ.nTargets+1+length(newdet), 
+        %   2+prevZ.nTargets+length(newdet)+1,
+        %   ..                   --->  Auto presenti nel Modello
+        %   ..
+        %   2+prevZ.nTargets+length(newdet)+1+prevZ.nCarTargets 
+        %   2+prevZ.nTargets+length(newdet)+1+prevZ.nCarTargets+1 
+        %   ..
+        %   ..               --->  Nuove Auto detettate
+        %   2+prevZ.nTargets+length(newdet)+1+prevZ.nCarTargets+1 
+        % 
+  
         if isfield(params, 'camscnt')
-            
-            tid = ceil(rand * (prevZ.nFeats + prevZ.nTargets + length(newdet) + prevZ.nCarTargets + length(newcdet) + 1));
+            %Number of Total Variables to be Sampled
+            NVariables=prevZ.nFeats + prevZ.nTargets + length(newdet) + prevZ.nCarTargets + length(newcdet) + 1;
+          
+            tid = ceil(rand * NVariables);
             tid = sum(rand > cumSamples) + 1;
         else
-            
+            %escludi auto 
             tid = ceil(rand * (prevZ.nFeats + prevZ.nTargets + length(newdet) + 1));
         end
         
         oid = 0; 
+        sid = 0;
         
         tsample = sample;
-        sid = 0;
+        
         
         if tid == 1
             %CAMERA SAMPLING
-            oid = 0; sid = tid;
+            % Object ID = 0
+            oid = 0; 
+            % Variable ID
+            sid = tid;
             tsample.cam = tsample.cam + mvnrnd(zeros(1, params.ncamv), params.Pert{1})';
             if (params.useCamAnnealing == 1)
                 params.Pert{1} = params.Pert{1} .* params.AnnealingConst;
             end
             
         elseif tid <= 1+size(sample.per, 2)  %PERSON SAMPLING
-            oid = 1; sid = tid - 1;
+            % Object ID = 1
+            oid = 1;
+            %Id of Variable to be Sampled
+            sid = tid - 1; 
+            
+            %Current value for the sample
             temp = tsample.per(end, tid-1);
             if rand < params.flipObj
                 temp = ~temp;
             end
+            %New sample for the Variable tid-1
             tsample.per(:, tid-1) =...
             [tsample.per(1:params.nperv, tid-1) + mvnrnd(zeros(1, params.nperv), params.Pert{tid})';
                 temp];
-            % sample beta!
-
+            
+            % BETA SAMLING: intercation between PERSONs already present in
+            % the Model and Variable to be Sampled (tid-1)
             for j = 1:(tid-2)
                 temp = rand;
                 if (j == tid - 1) || temp < 0.8, continue; end;
@@ -129,9 +175,12 @@ for trial = 1:params.nretry
                     tsample.beta(j, tid - 1, 2) = 1;
                 end
             end
+            % intercation between Variable to be Sampled (tid-1) 
+            % and New detection - PERSONs 
             for j = tid:(prevZ.nTargets + length(newdet))
                 temp = rand;
                 if (j == tid - 1) || temp < 0.8, continue; end;
+               
                 if temp > 0.9
                     tsample.beta(tid - 1, j, 1) = 1;
                     tsample.beta(tid - 1, j, 2) = 0;
@@ -140,15 +189,21 @@ for trial = 1:params.nretry
                     tsample.beta(tid - 1, j, 2) = 1;
                 end
             end
-        elseif tid <= 1 + size(sample.per, 2) + prevZ.nFeats %FEATURE SAMPLING
-            oid = 2; sid = tid - 1 - size(sample.per, 2);
+            
+        elseif tid <= 1 + size(sample.per, 2) + prevZ.nFeats  %GROUND FEATURE SAMPLING
+            % Object ID = 2
+            oid = 2; 
+            sid = tid - 1 - size(sample.per, 2);
+            
             temp = tsample.gfeat(end, sid);
             if rand < params.flipFeat
                 temp = ~temp;
             end
             tsample.gfeat(:, sid) = [tsample.gfeat(1:(params.ngfeat-1), sid) + mvnrnd(zeros(1, params.ngfeat-1), params.PertGF{sid})'; temp];
-        else
-            oid = 3; sid = tid - 1 - size(sample.per, 2) - prevZ.nFeats;
+        else %CAR
+             % Object ID = 3
+            oid = 3; 
+            sid = tid - 1 - size(sample.per, 2) - prevZ.nFeats;
             
             temp = tsample.car(end, sid);
             if rand < params.flipObj
@@ -163,8 +218,10 @@ for trial = 1:params.nretry
 %             keyboard
         end
 
-        % accepted sample
+        % accepted sample tsample: Contiene il campione Congiunto delle
+        % VARIABILI 
         if ar > rand
+            %Store the current temporary sample
             sample = tsample;  
             prior = tprior;
             prior_car = tprior_car;
@@ -191,6 +248,7 @@ for trial = 1:params.nretry
             if mod(i - params.burnin, params.thinning) ~= 0, continue; end
             % save them.
             tempcam(:, end + 1) = getNextCamera(sample.cam, params);
+          
             tempper(:, end + 1) = reshape([params.Aper * sample.per(1:params.nperv, :); sample.per(params.nperv + 1, :)], prod(size(sample.per)), 1);
             tempcar(:, end + 1) = reshape([params.Acar * sample.car(1:params.ncarv, :); sample.car(params.ncarv + 1, :)], prod(size(sample.car)), 1);
             
@@ -203,8 +261,8 @@ for trial = 1:params.nretry
     end
     
     figure(2);
-    subplot(211); plot(probrecord1(500:end));
-    subplot(212); plot(probrecord2);
+    subplot(211); plot(probrecord1(500:end));title('Acceptance Ratio 500')
+    subplot(212); plot(probrecord2);title('Acceptance Ratio All')
     drawnow
     print('-dpng', ['testfigsmore/samplesfigure' num2str(fn) '_' num2str(trial) '.png']);
     
@@ -213,17 +271,30 @@ for trial = 1:params.nretry
         print('-dpng', ['testfigsmore/imagefigure' num2str(fn-1), '.png']);
         figure(2);
     end
-
-    % prior
-    %     UPDATE Z
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % Compute MONTECARLO APPROXIMATION for the current trial
+    %
+    % tempcam,tempcar,tempper...contengono un insieme di Campioni di cui
+    % voglio approssimare l'Integrale
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %CAMERA data
+    %
+    %MEAN VALUE
     Z.cam(:, trial) = mean(tempcam, 2);
+    %CAMERA COVARIANCE in Z.V{1}
     Z.V{1, trial} = cov(tempcam');
+    %All generated Camera Samples
     Z.cams{trial} = tempcam;
     
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %% PERSON DATA
     nper = size(sample.per, 2);
+    %PERSON MEAN VALUE
     Z.per(:, trial) = mean(tempper, 2);
-    for i = 1:size(sample.per, 2)        
+    %CAVARIANCE in Z.V{2:Number of Person,trial}
+    for i = 1:size(sample.per, 2) %get the i-Person       
         try
+            disp( [i  (1 + (i-1) * (params.nperv + 1)) i * (params.nperv + 1) - 1] );
             Z.V{i + 1, trial} = cov(tempper((1 + (i-1) * (params.nperv + 1)):(i * (params.nperv + 1) - 1), :)');
             if sample.tcnt(i) == 0
                 Z.V{i + 1, trial} = Z.V{i + 1, trial} + diag([0, 0, .3^2, .3^2, 0]);
@@ -233,10 +304,16 @@ for trial = 1:params.nretry
         end
     end
     
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %% CAR DATA
     ncar = size(sample.car, 2);
+    %CAR MEAN VALUE
     Z.car(:, trial) = mean(tempcar, 2);
-    for i = 1:size(sample.car, 2)        
+    %CAVARIANCE in Z.cV
+    for i = 1:size(sample.car, 2) % Get the i-Car        
         try
+            disp([i (1 + (i-1) * (params.ncarv + 1)) i * (params.ncarv + 1) - 1]);
+
             Z.cV{i, trial} = cov(tempcar((1 + (i-1) * (params.ncarv + 1)):(i * (params.ncarv + 1) - 1), :)');
             if sample.tccnt(i) == 0
                 Z.cV{i, trial} = Z.cV{i, trial} + diag([0, 0, 20^2, 20^2, 0, 0]);
@@ -246,8 +323,9 @@ for trial = 1:params.nretry
         end
     end
     
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %% GROUND FEATURES
     Z.gfeat(:, trial) = mean(tempgfeat, 2);
-    
     Z.gfeat(3:3:end, trial) = min(Z.gfeat(3:3:end, trial), 0.99); % 
     Z.gfeat(3:3:end, trial) = max(Z.gfeat(3:3:end, trial), 0.01); % 
     
@@ -763,29 +841,31 @@ sample.gfeat(3, :) = rand(1, prevZ.nFeats) < sample.gfeat(3, :);
 Mper=zeros(params.nperv, 1);
 VAddNoise= params.Qper2 + 1e-5 * eye(params.nperv)';
 for i = 1:size(sample.per, 2)
-        Old=sample.per(:, i);
-    %                                           media nulla                                                  
-    sample.per(:, i) = sample.per(:, i) + [mvnrnd(Mper, Z.V{i + 1,initidx} +VAddNoise); 0];
-        %Disegna
-    figure(11)
-    plot3(Old(1),Old(2),Old(3 ),'og','MarkerFaceColor','g','MarkerEdgeColor','g','MarkerSize',5);
-    plot3(sample.per(1, i),sample.per(2, i),sample.per(3, i),'sg','MarkerFaceColor','g','MarkerEdgeColor','g','MarkerSize',5);
-    linea=[sample.per(1:3, i) Old(1:3)];
-    line(linea(:,1),linea(:,2),linea(:,3));
+    % Old=sample.per(:, i);
+    %                                               media nulla                                                  
+    sample.per(:, i) = sample.per(:, i) + [mvnrnd(Mper, Z.V{i + 1,initidx} +VAddNoise) 0].';
+    
+    
+    %Disegna
+%     figure(11)
+%     plot3(Old(1),Old(2),Old(3 ),'og','MarkerFaceColor','g','MarkerEdgeColor','g','MarkerSize',5);
+%     plot3(sample.per(1, i),sample.per(2, i),sample.per(3, i),'sg','MarkerFaceColor','g','MarkerEdgeColor','g','MarkerSize',5);
+%     linea=[sample.per(1:3, i) Old(1:3)].';
+%     line(linea(:,1),linea(:,2),linea(:,3));
 end
 
 %CARs
 Mcar=zeros(params.ncarv, 1);
 VAddNoise= params.Qcar2 + 1e-5 * eye(params.ncarv)';
 for i = 1:size(sample.car, 2)
-    Old=sample.car(:, i);
-    sample.car(:, i) = sample.car(:, i) + [mvnrnd(zMcar, Z.cV{i, initidx} + VAddNoise); 0];
+    %Old=sample.car(:, i);
+    sample.car(:, i) = sample.car(:, i) + [mvnrnd(Mcar, Z.cV{i, initidx} + VAddNoise) 0].';
     %Disegna
-    figure(11)
-    plot3(Old(1),Old(2),Old(3 ),'or','MarkerFaceColor','r','MarkerEdgeColor','r','MarkerSize',5);
-    plot3(sample.car(1, i),sample.car(2, i),sample.car(3, i),'sr','MarkerFaceColor','r','MarkerEdgeColor','r','MarkerSize',5);
-    linea=[sample.car(1:3, i) Old(1:3)];
-    line(linea(:,1),linea(:,2),linea(:,3));
+    %figure(11)
+    %plot3(Old(1),Old(2),Old(3 ),'or','MarkerFaceColor','r','MarkerEdgeColor','r','MarkerSize',5);
+    %plot3(sample.car(1, i),sample.car(2, i),sample.car(3, i),'sr','MarkerFaceColor','r','MarkerEdgeColor','r','MarkerSize',5);
+    %linea=[sample.car(1:3, i) Old(1:3)].';
+    %line(linea(:,1),linea(:,2),linea(:,3));
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -821,7 +901,7 @@ for i = newdet
     % compute inverse projection of PERSON
     % randomly sample the humanness by looking at the heights...
     x = X.obs(:, i);
-    x = [x(1) + x(3) / 2, x(2) + x(4), x(4)];
+    x = [x(1) + x(3) / 2, x(2) + x(4), x(4)]; %punto a terra
     temp = getIProjection(x', sample.cam);
     
     if sum(isnan(temp)) > 0
@@ -832,17 +912,18 @@ for i = newdet
     sample.per = [sample.per, [temp; 1]]; % rand < X.pobj(i)]];
     sample.tcnt = [sample.tcnt, 0];
      %Draw the Sample for the New Observation
-     figure(11)
-    plot3(temp(1),temp(2),temp(3),'sr','MarkerFaceColor','r','MarkerEdgeColor','r','MarkerSize',5);
+    % figure(11)
+    %plot3(temp(1),temp(2),temp(3),'sr','MarkerFaceColor','r','MarkerEdgeColor','r','MarkerSize',5);
     
 end
 
 sample.tccnt = prevZ.tccnt;
-% PERSON NEW OSERVATION
+% CAR NEW OSERVATION (2D) --> ricostruisco il punto a TERRA 3D 
 for i = newcdet
     % compute inverse projection of CAR
     % randomly sample the humanness by looking at the heights...
     x = Xc.obs(:, i);
+    %PUNTO MEDIO sul piano di terra TERRA
     x = [x(1) + x(3) / 2, x(2) + x(4), x(3), x(4)];
     temp = getCarIProjection(x', sample.cam);
     if sum(isnan(temp)) > 0
@@ -852,8 +933,8 @@ for i = newcdet
     sample.tccnt = [sample.tccnt, 0];
        
     %Draw the Sample for the New Observation
-    figure(11)
-    plot3(temp(1),temp(2),temp(3),'sr','MarkerFaceColor','r','MarkerEdgeColor','r','MarkerSize',5);
+    %figure(11)
+    %plot3(temp(1),temp(2),temp(3),'sr','MarkerFaceColor','r','MarkerEdgeColor','r','MarkerSize',5);
 
 end
 

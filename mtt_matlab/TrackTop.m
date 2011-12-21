@@ -122,7 +122,7 @@ figure(myfig); % 3D Reconstruction
 
 title('3D Data'); grid on;hold on;
 plot3(0,0,0,'oy','MarkerFaceColor','y','MarkerEdgeColor','y','MarkerSize',5);
-DrawCameraSample(Z.cam,myfig)
+DrawSample(Z,11,rand(1,3)) 
 xlabel('X')
 ylabel('Y')
 zlabel('Z') 

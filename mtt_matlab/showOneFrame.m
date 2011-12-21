@@ -32,13 +32,11 @@ if frame > 1
         for i = 1:size(xx, 1)
             [x1] = getGProj([xx(i, 1), xx(i, 2)]', mcam);
             [x2] = getGProj([xx(i, 1), xx(i, 3)]', mcam);
-
             plot(linspace(x1(1), x2(1), 10), linspace(x1(2), x2(2), 10), 'm:');
         end
         for i = 1:size(zz, 1)
             [x1] = getGProj([zz(i, 2), zz(i, 1)]', mcam);
             [x2] = getGProj([zz(i, 3), zz(i, 1)]', mcam);
-
             plot(linspace(x1(1), x2(1), 10), linspace(x1(2), x2(2), 10), 'm:');
         end
         hold off 

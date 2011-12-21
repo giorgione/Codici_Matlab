@@ -1,4 +1,4 @@
-function RectangleFaceAlpha(Detections,FigHandle)
+function RectangleFaceAlpha(Detections,FigHandle,Colore)
 n=length(Detections);
 figure(FigHandle)
 
@@ -25,6 +25,6 @@ for i=1:n
     x3=xo;
     y3=y2;
 
-    p=patch([xo x1 x2 x3],[yo y1 y2 y3],'r');
+    p=patch([xo x1 x2 x3],[yo y1 y2 y3],Colore);
     set(p,'FaceAlpha',0.2);
 end

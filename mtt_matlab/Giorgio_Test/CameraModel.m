@@ -29,11 +29,11 @@ Vo=10;
 w=20; ku=1;
 h=20;  kv=1;
 %PARAMETRI ESTRINSECI
-tx=pi/4;
+tx=1;
  
 % Posizione del Centro Ottico C0
-Xt=80;
-Zt=80; %profondita
+Xt=0;
+Zt=0; %profondita
 Ht=0;  %altezza della camera
 T=[Xt Zt Ht].';
 CO=T;
@@ -70,7 +70,7 @@ Ac=W2C(tx,Aw,repmat([0;0;0],1,3));
 %La camera e allineata al piano di terra e l'asse focale e l'asse Y
 AsseU=w*Ac(:,1)./norm(Ac(:,1));
 AsseV=h*Ac(:,3)./norm(Ac(:,3));
-DisegnaPiano(AsseU,AsseV,T);
+DisegnaPiano(AsseU,AsseV,T,1,colorZ);
 
 Vettore3D_Applicato(T,Ac(1,1),Ac(2,1),Ac(3,1),colorX)
 Vettore3D_Applicato(T,Ac(1,2),Ac(2,2),Ac(3,2),colorY)

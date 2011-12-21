@@ -117,9 +117,7 @@ if(size(KLT.x, 2) >= NFRAMES)
 end
 % speed([1:(firstframe-1), (lastframe+1):NFRAMES]) = [];
 %%%%%%%%%%%
-
-
-%
+Colore=zeros(1,3);
 % PROCESSING FRAMES by FRAMES
 for i = 1:fstep:length(imfiles)
     disp(['Processing ' num2str(i) 'th frame']);
@@ -132,14 +130,17 @@ for i = 1:fstep:length(imfiles)
         figure(8);
         imshow(PrevIm);hold on
         plot(KLT.x(PrevZ.gfidx,i-fstep),KLT.y(PrevZ.gfidx,i-fstep),'r*') % RETAINED KLT for frame 1
-        
+        RectangleFaceAlpha(X,8,Colore);
+        RectangleFaceAlpha(Xc,8,Colore);
     end
     Im = imread([imgdir imfiles(i).name]);
     %Show Current image
-    figure(9);
+    figure(9);clf;
     imshow(Im);hold on
-    plot(KLT.x(:,i),KLT.y(:,i),'r*') %all KLT
-    
+    %plot(KLT.x(:,i),KLT.y(:,i),'r*') %all KLT
+  
+    Colore=Colore+80*rand(1,3);
+    Colore=Colore./norm(Colore);
     
     fileNameNoExt=imfiles(i).name(1:find(imfiles(i).name=='.',1,'last')-1 );
   
@@ -149,9 +150,9 @@ for i = 1:fstep:length(imfiles)
     % Xc= Detected CAR
     [X, Xc, det] = getDets(imgdir, detdir, i-1, detth, isz);
     %Draw detections
-    RectangleFaceAlpha(X,9);
-    RectangleFaceAlpha(Xc,9);
-    
+    RectangleFaceAlpha(X,9,Colore);
+    RectangleFaceAlpha(Xc,9,Colore);
+    drawnow
     if exist([imgdir fileNameNoExt '_ant.mat'])
         load([imgdir fileNameNoExt '_ant.mat']);
         truecnt(i) = length(oneFrameAnnotation);
@@ -192,21 +193,21 @@ for i = 1:fstep:length(imfiles)
     % 
     [Z, tKLT, gfmatch] = KLTmatch(Z, KLT, i, sparams, isz);
     KLTused(i).tKLT = tKLT;
-    if i > 1
+    %if i > 1
     % View KLT matching features
-    MergedIm=[PrevIm Im];
-        figure(10)
+    %MergedIm=[PrevIm Im];
+        %figure(10)
         
-        imshow(MergedIm);hold on
-        plot(KLT.x(Z.gfidx,i-fstep),KLT.y(Z.gfidx,i-fstep),'r*') % RETAINED KLT for frame 1
-        plot(2040+KLTused(i).tKLT.x ,KLTused(i).tKLT.y,'g*') % RETAINED KLT for frame 1
+        %imshow(MergedIm);hold on
+    %    plot(KLT.x(Z.gfidx,i-fstep),KLT.y(Z.gfidx,i-fstep),'b*')  
+    %   plot(2040+KLTused(i).tKLT.x ,KLTused(i).tKLT.y,'g*') % RETAINED KLT for frame 1
         %draw line between corrispondence
-        for klti=1:length(Z.gfidx) 
-            Xlinea=[2040+KLTused(i).tKLT.x(klti) ;KLT.x(Z.gfidx(klti),i-fstep)];
-            Ylinea=[KLTused(i).tKLT.y(klti);KLT.y(Z.gfidx(klti),i-fstep)];
-            line(Xlinea,Ylinea)
-        end
-   end  
+        %for klti=1:length(Z.gfidx) 
+        %    Xlinea=[2040+KLTused(i).tKLT.x(klti) ;KLT.x(Z.gfidx,i-fstep) ];
+        %    Ylinea=[KLTused(i).tKLT.y(klti);KLT.x(Z.gfidx,i-fstep) ];
+        %    line(Xlinea,Ylinea)
+        %end
+   %end  
     
     %%%%%%%%%%% done
     if i == 1,   sparams.dt = 0;
@@ -226,8 +227,10 @@ for i = 1:fstep:length(imfiles)
     [Z, zcorres, zcorres_car] = MCMCSamplesJointStatesParametrerizationWCar...
         (Z, X, Xc, Y, tKLT, zcorres, zcorres_car, sparams, i);
     toc;
-    DrawCameraSample(Z.cam,11)
+     
    
+    DrawSample(Z,11,Colore)
+     
     %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% display results!!!
     disp(['mean camera : ' num2str(mean(Z.cam, 2)')]);
     disp(['mean car : ' num2str(mean(Z.car, 2)')]);
@@ -240,7 +243,7 @@ for i = 1:fstep:length(imfiles)
     [Z, KLT, KLTused] = postProcessFeatures(Z, KLT, KLTused, i, sparams, isz, gfmatch);
     %Draw ground features retained for current frame
     figure(9)       
-    imshow(Im)
+    %imshow(Im)
     plot(KLT.x(Z.gfidx,i),KLT.y(Z.gfidx,i),'b*') % RETAINED KLT for frame 1
     
     
@@ -261,7 +264,7 @@ for i = 1:fstep:length(imfiles)
     if 1
 %         try
             [TP(i), FP(i), FN(i)] = showOneFrame(Im, i, Z, Tracks, CTracks, oneFrameAnnotation, sparams, KLT, tKLT, det, Xc, Y, 0);
-            close(2);
+            %close(2);
             drawnow;
 %         catch
 %         end    
