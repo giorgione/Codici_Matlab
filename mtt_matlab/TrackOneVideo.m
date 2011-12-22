@@ -15,10 +15,13 @@ function [Tracks, CTracks, camTrack, Zs, TP, FP, FN, F, KLTused] = TrackOneVideo
 %Detection Threshold
 detth = sparams.detth;
 
+%
 Tracks = [];
 hTracks = [];
+
 CTracks = [];
 hCTracks = [];
+
 camTrack = [];
 
 imfiles = dir([imgdir '*.png']);
@@ -268,11 +271,12 @@ for i = 1:fstep:length(imfiles)
     
     %% Update Model 
     [Z, targetcnt] = updateMStracker(Im, Z, X, targetcnt, corres, kernels, szkernel, nBit, cparams);
-    
+    %targetccnt --> Numero di Volte che conto ciascun TARGET 
     [Z, targetccnt] = updateCarTracks(Im, Z, X, targetccnt, corres_car);
     
     %% Manage tracks! filter out obvious miss tracks
-    [Z, hTracks, Tracks, hCTracks, CTracks, zcorres, zcorres_car, trackcnt, trackccnt] = ManageTracks(Z, hTracks, Tracks, hCTracks, CTracks, zcorres, zcorres_car, trackcnt, trackccnt, i, sparams, fstep, nInitTrack1, nInitTrack2, nTrackTerm);
+    [Z, hTracks, Tracks, hCTracks, CTracks, zcorres, zcorres_car, trackcnt, trackccnt] =...
+        ManageTracks(Z, hTracks, Tracks, hCTracks, CTracks, zcorres, zcorres_car, trackcnt, trackccnt, i, sparams, fstep, nInitTrack1, nInitTrack2, nTrackTerm);
     % add function for cars.
     
     %% %%%%%%%%%%% occlusion reasoning
@@ -684,16 +688,24 @@ for j = newtracks
 end
 
 end
-
-function [Z, hTracks, Tracks, hCTracks, CTracks, zcorres, zcorres_car, trackcnt, trackccnt] = ManageTracks(Z, hTracks, Tracks, hCTracks, CTracks, zcorres, zcorres_car, trackcnt, trackccnt, frameidx, sparams, fstep, nInitTrack1, nInitTrack2, nTrackTerm)
+% hTracks --> IPOTESI di Track per le PERSONE
+% Tracks ---> TRACK per le PERSONE gia' ISTANZIATE
+% hCTracks ---> IPOTESI TRACK CAR
+% CTracks ---> TRACK CAR ESISTENTI
+function [Z, hTracks, Tracks, hCTracks, CTracks, zcorres, zcorres_car, trackcnt, trackccnt]...
+    = ManageTracks(Z, hTracks, Tracks, hCTracks, CTracks, zcorres, zcorres_car, trackcnt, trackccnt, frameidx, sparams, fstep, nInitTrack1, nInitTrack2, nTrackTerm)
 %% Filter out tracks
+%Genero un lista di Track da eliminare per  le PERSONE
 filterout = [];
 for j = 1:Z.nTargets
+    % Samples per il TARGET j (PERSONA j-esima) che hanno un Peso Totale inferiore al Numero di campioni/2     
     if sum(Z.per((sparams.nperv + 1) * j, :)) < Z.nSamples * 0.2
         filterout = [filterout, j];
     end
 end
+%PERSON - camera
 [Z, hTracks, Tracks] = RemoveTracks(Z, hTracks, Tracks, filterout, sparams);
+
 zcorres(filterout) = [];
 %% Filter out cars
 filterout = [];
@@ -702,9 +714,10 @@ for j = 1:Z.nCarTargets
         filterout = [filterout, j];
     end
 end
-
+%CAR
 [Z, hCTracks, CTracks] = RemoveCarTracks(Z, hCTracks, CTracks, filterout, sparams);
 zcorres_car(filterout) = [];
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% initiate and terminate tracks
 targetidx = Z.peridx;
 targetidx = targetidx(:)';
@@ -784,21 +797,27 @@ for j = 1:length(Tracks)
         Tracks(j).term = frameidx;
     end
 end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% initiate and terminate car tracks
 caridx = Z.caridx;
 caridx = caridx(:)';
+%Individua il Detection ID della CAR tra le CAR che non hanno corrispondenza  
 detidx = setdiff(caridx, caridx(zcorres_car == -1));
 
 for j = detidx(:)'
     matched = 0;
+    %Verifico Se la TRACK j e' gia presente in hCTracks
     for k = 1:length(hCTracks)
         if hCTracks(k).tid == j
+            %TRACK MATCHED
             matched = 1;
+            %Aggiungo un nuovo frame alla track
             hCTracks(k).det(end + 1) = frameidx;
             break;
         end
     end
-    
+    %Verifico Se la TRACK j e' gia presente in CTracks
     for k = 1:length(CTracks)
         if CTracks(k).tid == j
             matched = 1;
@@ -808,6 +827,7 @@ for j = detidx(:)'
     end
     
     if matched == 0
+        %Genero una nuova TRACK e la inserisco in hCTracks
         track.id = -1;
         track.tid = j;
         track.det = frameidx;

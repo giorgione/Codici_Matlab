@@ -11,7 +11,7 @@
 % Parametri OUT:
 %
 %   outcome: campioni generati
-function outcome=CampionamentoInversoDiscreto(P,N,type)
+function outcome=CampionamentoInversoDiscreto(P,N)
 %Caso Discreto
  
     %Genero la Distribuzione Cumulativa di P

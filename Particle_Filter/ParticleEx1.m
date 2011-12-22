@@ -1,6 +1,6 @@
 function ParticleEx1
 %%
-% Particle filter example, adapted from Gordon, Salmond, and Smith paper.
+% Particle filter- BootStrap Filter example, adapted from Gordon, Salmond, and Smith paper.
 %
 % Sistema Dinamico F: R --> R
 %

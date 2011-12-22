@@ -1,3 +1,6 @@
+%function [Z, hTracks, Tracks] = RemoveTracks(Z, hTracks, Tracks, Zidx, sparams)
+% Rimuovi da hTrack le track specificate da Zidx
+
 function [Z, hTracks, Tracks] = RemoveTracks(Z, hTracks, Tracks, Zidx, sparams)
 removelist = [];
 for k = 1:length(hTracks)
@@ -11,7 +14,7 @@ hTracks(removelist) = [];
 for k = 1:length(Tracks)
     idx = find(Tracks(k).tid == Z.peridx(Zidx));
     if ~isempty(idx)
-        Tracks(k).term = i;
+        Tracks(k).term = idx; %era i
     end
 end
 

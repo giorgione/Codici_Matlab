@@ -23,7 +23,7 @@ syms R a
 A=int(int(r/A,'r',0,R),'t',0,a)
 
 %Campionare una distribuzione del genere e TROPPO COMPLICATO
-T=1200;
+T=1500;
 
 %Utilizzo MCMC
 %Inizializzo tutti le Variabili presenti nel Modello
@@ -36,10 +36,10 @@ P=@(Theta)DistrCircolare(Theta,[10;10],4);
 %estratto dal Processo di campionamento
 Theta=zeros(NVar,T);
  %Punto Iniziale
-Theta(1,1)=1; 
-Theta(2,1)=1; 
+Theta(1,1)=2; 
+Theta(2,1)=2; 
 %Campiono
-Samples=Fun_MetroPolisHastingsSampler_CW(P,Theta,NVar,T,[1 2]);
+Samples=Fun_MetroPolisHastingsSampler_CW(P,Theta,NVar,T,[1 1]);
 zx = sym('zx','real');
 zy = sym('zy','real');
 Z=[zx;zy];
