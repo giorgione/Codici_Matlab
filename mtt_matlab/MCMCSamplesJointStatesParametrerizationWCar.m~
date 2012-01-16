@@ -67,7 +67,7 @@ for trial = 1:params.nretry
         keyboard;
     end
     
-    %%%% UPDATE COVARIANCE MATRIX for Each VARIABLE in the Model:
+    %%%% UPDATE COVARIANCE MATRIX for Each VARIABLE in the Model at current time:
     %
     % - params.Pert{1} = CAMERA COV. MATRIX
     %
@@ -282,16 +282,18 @@ for trial = 1:params.nretry
             temptempsamples = [temptempsamples, sample];
         end
     end
-    %DrawSample(maxsample,TrialFig(trial),ColorTrial) ;
-     % Disegno la posizione della Camera
-    plot3(tempcam(7,:),tempcam(8,:),tempcam(2,:),'o','MarkerFaceColor',Colore,'MarkerEdgeColor',Colore,'MarkerSize',5);    %Get Priors 
     
-    % Disegno la posizione dei TARGET
-    plot3(tempcar(1,:),tempcar(2,:),tempcar(3,:),'d','MarkerFaceColor',Colore,'MarkerEdgeColor',Colore,'MarkerSize',5);    %Get Priors 
+    % Disegno la posizione della Camera
+    if isempty(tempcam)==0 
+        plot3(tempcam(7,:),tempcam(8,:),tempcam(2,:),'o','MarkerFaceColor',Colore,'MarkerEdgeColor',Colore,'MarkerSize',5);    %Get Priors 
+    end
+        % Disegno la posizione dei TARGET
+    if isempty(tempcar)==0
+        plot3(tempcar(1,:),tempcar(2,:),tempcar(3,:),'d','MarkerFaceColor',Colore,'MarkerEdgeColor',Colore,'MarkerSize',5);    %Get Priors 
+    end
     if isempty(tempper)==0
-        
-   plot3(tempper(1,:),tempper(2,:),tempper(3,:),'s','MarkerFaceColor',Colore,'MarkerEdgeColor',Colore,'MarkerSize',5);    %Get Priors 
-   
+        plot3(tempper(1,:),tempper(2,:),tempper(3,:),'s','MarkerFaceColor',Colore,'MarkerEdgeColor',Colore,'MarkerSize',5);    %Get Priors 
+    end
     
     
     %% N iterations executed for trial
@@ -378,8 +380,9 @@ for trial = 1:params.nretry
     tsample.car = reshape(Z.car(:, trial), 7, length(Z.car(:, trial)) / 7);
     tsample.per = reshape(Z.per(:, trial), 6, length(Z.per(:, trial)) / 6);
     tsample.gfeat = reshape(Z.gfeat(:, trial), 3, length(Z.gfeat(:, trial)) / 3);
-    
-    [tttprob] = computeLogPosterior(tsample, prevZ, X, Y, Xc, KLT, corres, corres_car, params);
+    %%POSTERIOR
+    [tttprob] =... 
+    computeLogPosterior(tsample, prevZ, X, Y, Xc, KLT, corres, corres_car, params);
     display(['[Debug!!!] prob ratio = ' num2str(exp(tttprob - max_prob))]);
     
     Z.W(trial) = (tttprob);

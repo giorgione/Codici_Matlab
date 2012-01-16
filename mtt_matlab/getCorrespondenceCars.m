@@ -1,7 +1,8 @@
 %function [corres] = getCorrespondenceCars(Z, Xc, params, sparams, tpan)
 %
 % Solve the association problem between the CAR observation Xc and the CAR
-% Tracked in the previous frame
+% Tracked in the previous frame (Non integrato con il Meanshift per aggiungere 
+% la Matrice di APPARENZA)
 
 function [corres] = getCorrespondenceCars(Z, Xc, params, sparams, tpan)
 if nargin < 6

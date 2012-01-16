@@ -88,6 +88,8 @@ for i=1:K
     ylabel( 't' ); xlabel( '\theta' );
     xlim( [ thetamin thetamax ] );
     set( gca , 'YDir' , 'reverse' );
+    legend('Distribuzione Campioni Estratti','Distr. Campionata')
+
 end
 
 %Sovrappongo tutte i processi di Campionamento
@@ -97,3 +99,8 @@ figure(K+1);clf
 plot( theta.' , T , '-');
 ylabel( 't' ); xlabel( '\theta' );
 set( gca , 'YDir' , 'reverse' );
+legend(['Sampling t_0=' num2str(theta(1,1))],...
+       ['Sampling t_1=' num2str(theta(2,1))],...
+       ['Sampling t_2=' num2str(theta(3,1))],...
+       ['Sampling t_3=' num2str(theta(4,1))]);
+

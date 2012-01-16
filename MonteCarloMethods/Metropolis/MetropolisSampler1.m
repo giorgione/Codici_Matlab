@@ -28,10 +28,12 @@ thetamax = 30; % define a range for starting values
 K=4;
 theta = zeros( K , T ); % Init storage space for our samples
 seed=1; rand( 'state' , seed ); randn('state',seed ); % set the random seed
+
 %Genero il punto Iniziale
 theta(:,1) = unifrnd( thetamin , thetamax,K,1); % Generate start value
+theta(1,1)=1.1;
 
-
+Accept = zeros( K , T );
 %% Start sampling
 t = 1;
 while t < T % Iterate until we have T samples
@@ -55,8 +57,10 @@ while t < T % Iterate until we have T samples
         % Do we accept this proposal?
         if u(i) < alpha(i)
             theta(i,t) = thetastar(i); % If so, proposal becomes new state
+            Accept(i,t)=1;
         else
             theta(i,t) = theta(i,t-1); % If not, copy old state
+            Accept(i,t)=0;
         end
     end
 end
@@ -80,18 +84,36 @@ for i=1:K
     hold on;
     plot( thetabins , y/sum(y) , 'r-' , 'LineWidth' , 3 );
     set( gca , 'YTick' , [] );
+    legend('Distribuzione Campioni Estratti','Distr. Campionata')
 
     %% Display history of our samples
     subplot( 3,1,2:3 );
     stairs( theta(i,:) , 1:T , 'k-' );
     ylabel( 't' ); xlabel( '\theta' );
     set( gca , 'YDir' , 'reverse' );
+    legend('Processo Sampling nel Tempo')
+
 end
 
 %Sovrappongo tutte i processi di Campionamento
-T=1:T;
-T=repmat(T',1,K);
+Tvec=1:T;
+Tvec=repmat(Tvec',1,K);
 figure(K+1);clf
-plot( theta.' , T , '-');
+plot( theta.' , Tvec , '-');
 ylabel( 't' ); xlabel( '\theta' );
 set( gca , 'YDir' , 'reverse' );
+legend(['Sampling t_0=' num2str(theta(1,1))],...
+       ['Sampling t_0=' num2str(theta(2,1))],...
+       ['Sampling t_0=' num2str(theta(3,1))],...
+       ['Sampling t_0=' num2str(theta(4,1))]);
+   
+A=sum(Accept,2);
+%Generate some statistic
+for i=1:K
+    display('---------------------------------------');
+    display(['PROCESS ' num2str(i) ' To: ' num2str(theta(i,1))]);
+    display(['Total number of iteration: ' num2str(T)]);
+    display(['Accepted Samples: ' num2str(A(i)/T)]);
+    display(['Rejected Samples: ' num2str(1-A(i)/T)]);
+    display('---------------------------------------');
+end

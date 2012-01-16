@@ -11,7 +11,10 @@ for i=1:n
     if(isempty(X))
         break;
     end
-    w=X(3);h=X(4)
+    %
+    w=X(3);
+    h=X(4);
+    
     %Upper-Left corner
     xo=X(1);
     yo=X(2);
@@ -26,5 +29,5 @@ for i=1:n
     y3=y2;
 
     p=patch([xo x1 x2 x3],[yo y1 y2 y3],Colore);
-    set(p,'FaceAlpha',0.2,'LineWidth',5);
+    set(p,'FaceAlpha',0.2,'LineWidth',2);
 end

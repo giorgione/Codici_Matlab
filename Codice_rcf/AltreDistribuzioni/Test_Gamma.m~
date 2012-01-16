@@ -1,0 +1,115 @@
+%Test Gamma distribution
+%
+% Distribuzione Gamma (distribuzione monodimensionale) di parametri (a,b)
+% legata alla distribuzione beta utilizzata per descrivere processi di
+% Poisson quando il tempo di attesa tra eventi con distribuzione di Poisson
+% assume valore rilevante.
+% La distribuzione Gamma modella il tempo di ATTESA richiesto per osservare
+% (a) eventi, sapendo che gli essi sono dei Poison Process con (b) tempo medio
+% di attesa tra eventi.
+%% Esempio:
+%
+% Sapendo che  una grave inondazione si verifica ogni 6 anni (b=6)
+% Gamma(t| 4,6) descrive quanti anni passeranno prima che si verifichino
+% altre 4 inondazioni (a=4):
+%
+%                     (a-1)      (-x/b)
+%                   X          e           
+% P(T | a,b) =  -----------------------
+%                    a
+%                   b   Gamma( a )
+% dove:
+%
+% T >= 0 --> tempo di attesa richiesto
+%
+% a: parametro di forma >0  --> numero di eventi che voglio verificare
+%    legato al baricentro
+%    della curva
+%     
+%
+% b: parametro di scala >0  -->    tempo medio per il verificarsi di 1 evento
+%    tende ad allargare la curva           di interesse
+%     nell' asse tempo
+%
+%
+% Gamma: Gamma Function(t)=
+%
+%                  +inf
+%                I       (x-1)  -t                 se t è inetero positivo
+%   Gamma(t)  =  I      t      e   dt   -->        Gamma(t)=(t-1)!
+%                I
+%                  0
+%
+%
+%
+%
+% PROCESSO DI POISON:
+%
+% Un processo di Poisson è un PROCESSO STOCASTICO che simula il manifestarsi
+% di eventi che siano:
+% 1) indipendenti l'uno dall'altro 
+% 2) che accadano continuamente nel tempo.
+%
+% E' la generalizzazione di un Processo Binomiale:
+% P. Binomiale: n possibili probabilità di successo.
+% P Poisson: ho una  probabilità di sucesso continua e costante.
+% Esempio:
+% Il verificarsi di "Un raggio di sole durante la tempesta" può essere
+% modellato come un Processo di Poisson in quanto:
+% 1) Ad ogni possibile istante di tempo l'evento può verificarsi --> it tempo è continuo
+% 2) l'evento può verificarsi + volte in modo indipendente
+%
+% Il processo è definito da una collezione di variabili aleatorie N(t) per t>0,
+% che vengono viste come il numero di eventi occorsi dal tempo 0 al tempo
+% t:
+%
+% N(t): Numero Eventi occorsi nel tempo [0 t]
+%
+% Inoltre il numero di eventi tra il tempo a e il tempo b è dato come Nb − Na 
+% ed ha una distribuzione di Poisson:
+%
+% N(b-a)= Nb − Na 
+%
+% Costruzione mediante PROBABILITA di TRANSIZIONE
+% Un processo di Poisson è un processo stocastico che soddisfa le seguenti 
+% proprietà:
+%
+%    N(0)=0  --> al tempo 0 non accade alcun evento
+%
+%    Gli incrementi sono stazionari (ovvero la distribuzione del numero 
+%    di eventi che accadono in un certo intervallo dipende solo dalla 
+%    lunghezza dell'intervallo, λ) e hanno 
+%    distribuzione di Poisson di parametro λt:
+%
+%                                          (-λt)
+%                                λt       e           
+% P(  N(t+λ)-N(t) = k ) =  ---------------------
+%                                    k
+%
+clc;clear;close all
+
+ Q=@(x,a,b)gampdf(x,a,b);
+ nx=100;         %punti sui quali valutare la gamma
+ ngamma=15;     %numero di distr. gamma che voglio generare
+ x=linspace(0,150,nx);
+ 
+ a=linspace(1,5,ngamma);   
+ b=linspace(1,10,ngamma); 
+ 
+ X=repmat(x,ngamma,1);
+ A=repmat(a.',1,nx);
+ B=repmat(b.',1,nx);
+ 
+ P=gampdf(X,A,B);
+ %plot(X.',P.','-');
+ %simulazione per vedere come si modifica la curva in funzione di (a,b)
+ plot(X(1,:),P(1,:),'-'); hold on
+ legenda{1}=['a=' num2str(a(1)) '  b=' num2str(b(1))];
+ for i=2:ngamma
+     colore=rand(1,3);
+     colore=colore/norm(colore);
+     plot(X(i,:),P(i,:),'Color',colore)
+     legenda{i}=['a=' num2str(a(i)) '  b=' num2str(b(i))];
+     pause;
+ end
+ legend(legenda)

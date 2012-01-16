@@ -1,0 +1,13 @@
+function [Colore,Track]=DrawTracks(Track,Colore,Colored,Myfig)
+    
+figure(Myfig); hold on
+    for j = 1:length(Track)
+        Tempo=Track(j).det;
+        if isempty(Track(j).Colore)
+        Track.Colore=rand(3,1);
+        Colore(:,Track(j).tid)=rand(3,1);
+       
+        plot(Tempo,Track(j).tid*ones(size(Tempo)),Colore)
+       
+    end
+end

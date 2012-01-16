@@ -36,6 +36,12 @@ stang = [];
 yaw = [];
 latacc = [];
 longacc = [];
+
+ColoreA=zeros(3,1);
+    ColoreB=zeros(3,1);
+    ColoreC=zeros(3,1);
+    ColoreD=zeros(3,1);
+
 % 
 % addpath('C:\Users\wgchoi\VisionLabWork\FordProject\Dataset\Ford_U of M');
 % [imfiles, speed, stang, yaw, latacc, longacc] = readData(imgdir, 'C:\Users\wgchoi\VisionLabWork\FordProject\Dataset\Ford_U of M\Test17.CSV');
@@ -96,11 +102,12 @@ cparams.ncamv = 5;
 cparams.notrial = 10;
 
 % intial number of people
-targetcnt = 1;
-trackcnt = 1;
+targetcnt = 1; % target(people) count
+trackcnt = 1;  % track count for peple
+
 % initial number of cars
-targetccnt = 1;
-trackccnt = 1;
+targetccnt = 1; %target car count
+trackccnt = 1;  %track count for car
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Init Z containing all VARIABLES in the MODEL
@@ -148,7 +155,8 @@ for i = 1:fstep:length(imfiles)
     fileNameNoExt=imfiles(i).name(1:find(imfiles(i).name=='.',1,'last')-1 );
   
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    % READ DETECTIONS in Current Frame of PEOPLE AND CAR
+    % READ DETECTIONS in Current Frame of PEOPLE AND CAR:
+    % variabili X nel modello
     % X=  Detected PEOPLE
     % Xc= Detected CAR
     [X, Xc, det] = getDets(imgdir, detdir,firstframe-1+i-1, detth, isz);
@@ -167,7 +175,7 @@ for i = 1:fstep:length(imfiles)
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
     %Get The TRACKS  from the previous frame FRAMES of i
     %Y: Vector 3x(Number of Target) containing TARGET LOCATION (u,v) and Kernel size
-    %      describing each TARGET TRACKS
+    %      describing each TARGET MODEL
     %
     [Y] = getMStracks(Im, Z, KLT, i, sparams, kernels, szkernel, mstsize, nBit, simth);
     if ~isempty(Y)
@@ -177,8 +185,14 @@ for i = 1:fstep:length(imfiles)
     
     %%%%%%%%%%%%%% MS track end  correspondence
     %Compute Corrispondences between DETECTED PERSON (X) and PERSON
-    %VARIABLES stored in  the model
+    %VARIABLES stored in Z and Tracked Target
+    %               0   --  if i DETECTION in X hasn't correspondence in Z
+    % corres(i) = 
+    %              idx  of the TARGET in Z Correspondent to the i-DETECTIONs in X
+    %
+    % X(i,t) <--> Z(corres(i),t) <- PREDICTION Per ogni TARGET
     [corres] = getCorrespondence2(Z, X, Y, cparams, sparams);
+    
     % zcores: Indici delle Corrispondenze
     %              -1 se il TARGET j non ha corrispondenza
     % zcores(j) =
@@ -194,11 +208,16 @@ for i = 1:fstep:length(imfiles)
     
     %Compute Corrispondences between DETECTED CAR (Xc) and CAR VARIABLES 
     %stored in the model
+    %               0   --  if i DETECTION in X hasn't correspondence in Z
+    % corres(i) = 
+    %              idx  of the TARGET in Z Correspondent to the i-DETECTIONs in X
+    %
+    % X(i,t) <--> Z(corres(i),t) <- PREDICTION Per ogni TARGET
     [corres_car] = getCorrespondenceCars(Z, Xc, cparams, sparams);
-     % zcores: Indici delle Corrispondenze
+    % zcores: Indici delle Corrispondenze in Z
     %              -1 se il TARGET j non ha corrispondenza
     % zcores(j) =
-    %               i tale che corres(i)=j se il TARGET j ha corrispondenza
+    %               i se corres_car(i)=j : il TARGET j in Z ha corrispondenza
     %               in corres(i)
     % take MCMC samples! 
     zcorres_car = -1 * ones(1, Z.nCarTargets);
@@ -211,7 +230,7 @@ for i = 1:fstep:length(imfiles)
     %%%%%%%%%%%%%%%%%%% correspondence
     %% %%%%%%%%% get KLT match
     %
-    % 
+    % VARIABILE TAU nel Modello 
     [Z, tKLT, gfmatch] = KLTmatch(Z, KLT, i, sparams, isz);
     KLTused(i).tKLT = tKLT;
     %if i > 1
@@ -270,14 +289,21 @@ for i = 1:fstep:length(imfiles)
     
     
     %% Update Model 
+    %targetccnt --> Numero di Volte che conto ciascun TARGET PERSON
     [Z, targetcnt] = updateMStracker(Im, Z, X, targetcnt, corres, kernels, szkernel, nBit, cparams);
-    %targetccnt --> Numero di Volte che conto ciascun TARGET 
-    [Z, targetccnt] = updateCarTracks(Im, Z, X, targetccnt, corres_car);
+    %targetccnt --> Numero di Volte che conto ciascun TARGET CAR
+    [Z, targetccnt] = updateCarTracks(Im, Z, Xc, targetccnt, corres_car);
     
     %% Manage tracks! filter out obvious miss tracks
     [Z, hTracks, Tracks, hCTracks, CTracks, zcorres, zcorres_car, trackcnt, trackccnt] =...
         ManageTracks(Z, hTracks, Tracks, hCTracks, CTracks, zcorres, zcorres_car, trackcnt, trackccnt, i, sparams, fstep, nInitTrack1, nInitTrack2, nTrackTerm);
     % add function for cars.
+    
+%     DrawTracks(hTracks,30);
+%     DrawTracks(Tracks,30);
+%     DrawTracks(hCTracks,30);
+%     DrawTracks(CTracks,30);
+    
     
     %% %%%%%%%%%%% occlusion reasoning
     [Tracks] = inferOcclusion(Tracks, Z, i, sparams);
@@ -316,10 +342,11 @@ for j = 1:length(corres)
     %Ridugo il numero di bit per rappresentare il colore
     Qc = bitshift(reshape(patch, [], 3), nBit-8);
   
-    %Salvo la patch del TARGET
+    %Salvo la patch del TARGET 
     Z.model(corres(j)).timg = patch;
     
-    %Calcolo la Distribuzione di Colore del TARGET
+    %Aggiorno la Distribuzione di Colore del TARGET mediando con la nuova
+    %distribuzione Osservata (e matchata)
     Z.model(corres(j)).qS = (1 - cparams.adf) * buildHist( Qc, kernels(kidx), nBit ) + cparams.adf * Z.model(corres(j)).qS;
     % update this by Z estimation..
 end
@@ -525,7 +552,9 @@ for j = 1:length(Z.model)
     bestSim = 0;        
     %Tracking with different kernels and save the best RESULT 
     for s = cands
-        %sim: similiarity measure between TARGET MODEL and TARGET CANDIDATE
+        %sim: similiarity measure between TARGET MODEL-j and TARGET
+        %CANDIDATE in Im
+        % Mean Shift Tracking starting from ppos
         [p, pos, Ic, sim] = kernelTrack(Im, Z.model(j).qS, ppos(1:2)', kernels(s), nBit);
         
         if sim > bestSim, best={p, pos, Ic, s}; bestSim = sim; end
@@ -679,23 +708,25 @@ end
 
 
 function [Z, targetccnt] = updateCarTracks(Im, Z, X, targetccnt, corres_car)
-
+%Nuove track Car
 newtracks = find(corres_car == 0);
 for j = newtracks
+    %salvo id Car
     Z.caridx = [Z.caridx, targetccnt];
+    %Incrementa il numero di cAr inseguiete
     Z.nCarTargets = Z.nCarTargets  + 1;
+    %TARGET car count 
     targetccnt = targetccnt + 1;
 end
 
 end
 % hTracks --> IPOTESI di Track per le PERSONE
-% Tracks ---> TRACK per le PERSONE gia' ISTANZIATE
+% Tracks ---> TRACK per le PERSONE gia' ISTANZIATE e che sto inseguendo
 % hCTracks ---> IPOTESI TRACK CAR
 % CTracks ---> TRACK CAR ESISTENTI
 function [Z, hTracks, Tracks, hCTracks, CTracks, zcorres, zcorres_car, trackcnt, trackccnt]...
     = ManageTracks(Z, hTracks, Tracks, hCTracks, CTracks, zcorres, zcorres_car, trackcnt, trackccnt, frameidx, sparams, fstep, nInitTrack1, nInitTrack2, nTrackTerm)
-%% Filter out tracks
-%Genero un lista di Track da eliminare per  le PERSONE
+%% Genero un lista di Track da eliminare per  le PERSONE
 filterout = [];
 for j = 1:Z.nTargets
     % Samples per il TARGET j (PERSONA j-esima) che hanno un Peso Totale inferiore al Numero di campioni/2     
@@ -705,20 +736,22 @@ for j = 1:Z.nTargets
 end
 %PERSON - camera
 [Z, hTracks, Tracks] = RemoveTracks(Z, hTracks, Tracks, filterout, sparams);
-
 zcorres(filterout) = [];
-%% Filter out cars
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% CAR: Filter out cars
 filterout = [];
 for j = 1:Z.nCarTargets
+    %Probabilità associata ai Campioni della CAR j
     if sum(Z.car((sparams.ncarv + 1) * j, :)) < Z.nSamples * 0.2
         filterout = [filterout, j];
     end
 end
-%CAR
 [Z, hCTracks, CTracks] = RemoveCarTracks(Z, hCTracks, CTracks, filterout, sparams);
 zcorres_car(filterout) = [];
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% initiate and terminate tracks
+%% initiate and terminate tracks for PERSON
 targetidx = Z.peridx;
 targetidx = targetidx(:)';
 detidx = setdiff(targetidx, targetidx(zcorres == -1));
@@ -739,19 +772,21 @@ for j = detidx(:)'
             break;
         end
     end
+    %INIZIALIZZA UNA NUOVA IPOTESI
     if matched == 0
         track.id = -1;
         track.tid = j;
         track.det = frameidx;
         track.term = -1;
         track.occlusion = [];
+        track.colore=[];
         hTracks = [hTracks, track];
     end
 end
 
 removelist = [];
 for j = 1:length(hTracks)
-%         if length(hTracks(j).det) >= 5
+    %IPOTESI DI TRACK ---> TRACK EFFETTIVA
     if sum(hTracks(j).det > frameidx-(nInitTrack1*fstep)) >= nInitTrack2
         hTracks(j).id = trackcnt;
         Tracks = [Tracks, hTracks(j)];
@@ -759,7 +794,8 @@ for j = 1:length(hTracks)
         removelist = [removelist, j];        
         trackcnt = trackcnt + 1;
     end
-%         end
+    
+    %ELIMINA IPOTESI di TRACK
     if (hTracks(j).det(end) < frameidx - (nTrackTerm*fstep))
         zidx = find(Z.peridx == hTracks(j).tid);
         targetidx = unique(Z.peridx);
@@ -780,16 +816,19 @@ end
 
 hTracks(removelist) = [];
 for j = 1:length(Tracks)
+     %ELIMINA TRACK PERSONA
      if (Tracks(j).term == -1) && (Tracks(j).det(end) < frameidx - (nTrackTerm*fstep))
         zidx = find(Z.peridx == Tracks(j).tid);
         targetidx = unique(Z.peridx);
 
         Z.per((1 + (zidx-1) * (sparams.nperv + 1)):(zidx * (sparams.nperv + 1)), :) = [];
         mid = find(targetidx == Tracks(j).tid);
+        
         Z.model(mid) = [];
         Z.peridx(mid) = [];
         Z.tcnt(mid) = [];
         Z.nTargets = Z.nTargets - 1;
+        
         %%%%% remove interaction too!!!!!
         Z.beta(:, mid, :, :) = [];
         Z.beta(mid, :, :, :) = [];
@@ -807,75 +846,109 @@ detidx = setdiff(caridx, caridx(zcorres_car == -1));
 
 for j = detidx(:)'
     matched = 0;
-    %Verifico Se la TRACK j e' gia presente in hCTracks
+    %Verifico Se il TARGET j è già presente in un IPOTESI DI TRACK nella 
+    % lista  delle TRACK di IPOTESI hCTracks
     for k = 1:length(hCTracks)
+        %Cerco un IPOTESI di TRACK del TARGET j
         if hCTracks(k).tid == j
             %TRACK MATCHED
             matched = 1;
-            %Aggiungo un nuovo frame alla track
+            %Aggiorna la lista dei frame per il TARGET j
             hCTracks(k).det(end + 1) = frameidx;
             break;
         end
     end
-    %Verifico Se la TRACK j e' gia presente in CTracks
+    %Verifico Se la TARGET j e' gia presente in una TRACK nella lista CTracks
     for k = 1:length(CTracks)
+        %Cerco una TRACK del TARGET j
         if CTracks(k).tid == j
             matched = 1;
+            %Aggiorna la lista dei frame per il TARGET j
             CTracks(k).det(end + 1) = frameidx;
             break;
         end
     end
     
+    
+    %
+    %NO MATCHING: Genero una nuova IPOTESI DI TRACK e la inserisco in hCTracks
     if matched == 0
-        %Genero una nuova TRACK e la inserisco in hCTracks
-        track.id = -1;
-        track.tid = j;
-        track.det = frameidx;
-        track.term = -1;
+        track.id = -1;                 % id track
+        track.tid = j;                 %target id
+        %start detection frame --> Vettore contennete tutti i frame cui il
+        %TARGET j viene rilevato
+        track.det = frameidx;           
+        track.term = -1;               %end detection frame
         track.occlusion = [];
+        track.colore=[];
         hCTracks = [hCTracks, track];
     end
 end
 
+%Per le IPOTESI di TRACK ho le seguenti operazioni possibili:
+% 1) IPOTESI DI TRACK ---> TRACK EFFETTIVA (istanzio una nuova track da inseguire)
+%
+% 2) ELIMINARE L'IPOTESI DI TRACK
 removelist = [];
 for j = 1:length(hCTracks)
-%         if length(hTracks(j).det) >= 5
-    if sum(hCTracks(j).det > frameidx-(nInitTrack1*fstep)) >= nInitTrack2
+    
+    %% ISTANZIA TRACK
+    %Se l'IPOTESI DI TRACK j  è stata rilevata per un numero di
+    %frame >= nInitTrack2 posso ISTANZIARE una nuova TRACK
+    if sum( hCTracks(j).det > frameidx-(nInitTrack1*fstep) ) >= nInitTrack2
+        %% ISTANZIA nuova TRACK
+        %Assegno un ID
         hCTracks(j).id = trackccnt;
+        %Inserisco l'ipotesi di track j nella lista delle TRACK EFFETTIVE
         CTracks = [CTracks, hCTracks(j)];
         % remove from hypothesis
-        removelist = [removelist, j];        
+        removelist = [removelist, j];      
+        
+        %Aggiorna il numero di track per le auto
         trackccnt = trackccnt + 1;
     end
-%         end
+    %%ELIMINA IPOTESI DI TRACK dalla lista delle IPOTESI
+    % Se l'ultimo frame in cui ho rilevato la track j e' <= del frame
+    % corrente - una certa soglia ---> ELIMINA la Track da 
     if (hCTracks(j).det(end) < frameidx - (nTrackTerm*fstep))
         zidx = find(Z.caridx == hCTracks(j).tid);
         targetidx = unique(Z.caridx);
 
+        %Elimina da Z le 
         Z.car((1 + (zidx-1) * (sparams.ncarv + 1)):(zidx * (sparams.ncarv + 1)), :) = [];
         
         mid = find(targetidx == hCTracks(j).tid);
         Z.caridx(mid) = [];
         Z.tccnt(mid) = [];
+        %Diminuisce il numero di Car targets
         Z.nCarTargets = Z.nCarTargets - 1;
         
         removelist = [removelist, j];
     end
 end
+%Elimina le TRACKS in removelist dalle IPOTESI di TRACKS
 hCTracks(removelist) = [];
 
+%Per le TRACK EFFETTIVE di CAR ho le seguenti operazioni possibili:
+% 1)  ELIMINARE LA TRACK EFFETTIVA dalla lista delle TRACK
+
+%Analizza tutte le track Effettive
 for j = 1:length(CTracks)
+     % N
      if (CTracks(j).term == -1) && (CTracks(j).det(end) < frameidx - (nTrackTerm*fstep))
         zidx = find(Z.caridx == CTracks(j).tid);
         targetidx = unique(Z.caridx);
-
+        
+        %Elimino da Z il nodo relativo al TARGET specificato dalla TRACK
         Z.car((1 + (zidx-1) * (sparams.ncarv + 1)):(zidx * (sparams.ncarv + 1)), :) = [];
         mid = find(targetidx == CTracks(j).tid);
         Z.caridx(mid) = [];
         Z.tccnt(mid) = [];
         Z.nCarTargets = Z.nCarTargets - 1;
-
-        Tracks(j).term = frameidx;
+        
+        %Considero la TRACK e setto 
+        %era Track(j).term
+        CTracks(j).term = frameidx;
     end
 end
 end

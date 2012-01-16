@@ -74,13 +74,12 @@ for i=1:K
     hold on;
     plot( thetabins , y/sum(y) , 'r-' , 'LineWidth' , 3 );
     set( gca , 'YTick' , [] );
-    legend('Distribuzione Campioni Estratti','Distr. Campionata')
+    
 
     %% Display history of our samples
     subplot( 3,1,2:3 );
     stairs( theta(i,:) , 1:T , 'k-' );
     ylabel( 't' ); xlabel( '\theta' );
-    legend('Processo Sampling nel Tempo')
     xlim( [ thetamin thetamax ] );
     set( gca , 'YDir' , 'reverse' );
 end
@@ -91,9 +90,4 @@ T=repmat(T',1,K);
 figure(K+1);clf
 plot( theta.' , T , '-');
 ylabel( 't' ); xlabel( '\theta' );
-legend(['Sampling t_0=' num2str(theta(1,1))],...
-       ['Sampling t_0=' num2str(theta(2,1))],...
-       ['Sampling t_0=' num2str(theta(3,1))],...
-       ['Sampling t_0=' num2str(theta(4,1))]);
-
 set( gca , 'YDir' , 'reverse' );

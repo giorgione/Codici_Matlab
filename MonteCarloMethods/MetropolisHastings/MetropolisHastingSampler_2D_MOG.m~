@@ -1,0 +1,147 @@
+%%  Use Metropolis-Hastings ComponentWise procedure to sample from 
+%   a Mixture of Gaussian Multivariate
+%
+%   Utilizzo come PROPOSAL:  
+%                  t       t-1              t
+%           Q(theta | theta   ) = Gamma(theta| theta*1/tau , tau) 
+%
+%          
+% 
+%  Utilizzo starting point differenti per vedere come Campiona la
+%  procedura
+%
+%% Initialize the Metropolis sampler
+clc;clear;close all
+delete *.eps;
+delete *.tex;
+
+T= 500;            % Set the maximum number of iterations
+tau = 0.25:0.25:9; % Set standard deviation of normal proposal density
+tau=tau.';
+thetamin = [ 1 1 ]; % define minimum for theta1 and theta2
+thetamax = [ 50 50 ]; % define maximum for theta1 and theta2
+
+ Q=@(x,a,b)gampdf(x,a,b);
+
+
+%Mixture of 3 Gaussians
+U=[10 10;15 15; 20 20];
+ S=zeros(2,2,3);
+ S(:,:,1)=3*diag([1;1]);
+ S(:,:,2)=S(:,:,1);
+ S(:,:,3)=S(:,:,1);
+ Pi=[.3 .4 .3].';
+P=@(X)MixtureOfGaussianND(X.',U,S,Pi)
+
+%Istogramma Campioni Estratti
+nbins = 40;
+thetabins1 = linspace( thetamin(1) , thetamax(1) , nbins );
+thetabins2 = linspace( thetamin(2) , thetamax(2) , nbins );
+
+%% Draw the distribution
+[X Y]=meshgrid(linspace( thetamin(1) , thetamax(1) , 100 ), ...
+    linspace( thetamin(2) , thetamax(2) , 100));
+[m,n]=size(X);
+ %Passo le Osservazioni per RIGHE
+ x=reshape(X,m*n,1);
+ y=reshape(Y,m*n,1);
+ XX=[ x y];
+ 
+ ZZ=MixtureOfGaussianND(XX,U,S,Pi);
+ Z=reshape(ZZ,m,n);
+ 
+%Numero Simulazioni
+K=3;
+Na=3;
+Nb=4;
+NPar=Na*Nb;
+[a,b]=meshgrid(linspace(0.5,2.5,Na),linspace(0.5,2.5,Nb));
+a=reshape(a,1,NPar);
+b=reshape(b,1,NPar);
+
+%Punti Iniziali
+NVar=2;
+NPuntiIniziali=4;
+Theta0=zeros(NVar,NPuntiIniziali);
+ %Punto Iniziale
+Theta0(1,:) = linspace( thetamin(1) , thetamax(1) , NPuntiIniziali );
+Theta0(2,:) = linspace( thetamin(2) , thetamax(2) , NPuntiIniziali); 
+
+FID = fopen('MetropolisHastingCWSimulation.tex', 'w');
+
+fprintf(FID, '\\begin{center}\n');
+fprintf(FID, '\\begin{table}\\label{tb: Simulation Metropolis}\n');
+fprintf(FID, '\\begin{tabular}{|cccccc|}\\hline \n');
+fprintf(FID, 'Simulation & $\\theta_0$ & $\\sigma$ & Acceptance ratio & Reject ratio)\\\\ \\hline \n');
+%Varia i Punti iniziali
+for j=1:NPuntiIniziali
+    
+        %Varia i parametri di Gamma(a,b)
+        for k=1:NPar
+            
+            i=(j-1)*NPar+k;
+            %Campiono
+            [Samples,accepted]=Fun_MetroPolisHastingsSampler_CW(P,Theta0(:,j),NVar,T,[a(k) b(k)],'gamma');
+            Theta
+            %genero le statistiche
+            A=sum(accepted);
+
+            figure( i ); clf;
+
+            %% Display histogram of our samples
+            subplot( 2,1,1 );
+            nbins = 50;
+
+            hist3( Samples.' , 'Edges' , {thetabins1 thetabins2} );
+            xlabel( '$\theta_1$','Interpreter', 'latex'); 
+            xlabel( '$\theta_2$','Interpreter', 'latex'); 
+            zlabel( 'counts' );
+            az = 61; el = 30; view(az, el);
+
+
+
+
+            %% Display history of our samples
+            subplot( 2,1,2 );
+            zlabel( 't');
+            xlabel( '$\theta_1^t$','Interpreter', 'latex'); 
+            ylabel( '$\theta_2^t$','Interpreter', 'latex'); 
+            %%Disegno la distribuzione campionata
+            contour(Z);hold on
+            plot3(Samples(1,:),Samples(2,:),zeros(T),'or-','MarkerFaceColor','r', ...
+                'MarkerEdgeColor','r','Markersize',5); 
+
+
+            %SAVE
+            fileimg=['MetropolisHastingCWExample' num2str(i) '.eps'];
+            saveas(gcf,fileimg, 'psc2')
+            close gcf
+
+            I=find( A==2); I1=find( A==1);
+            Ac=length(I);
+            Ac=Ac+length(I1)/2;
+            display('---------------------------------------');
+            display(['PROCESS ' num2str(i)]);
+            display(['To: (' num2str(Samples(1,1)) ' , ' num2str(Samples(2,1)) ')']);
+            display(['a: ' num2str(a(k))]);
+            display(['b: ' num2str(b(k))]);
+            display(['Total number of iteration: ' num2str(T)]);
+            display(['Accepted Samples: ' num2str(Ac/T)]);
+            display(['Rejected Samples: ' num2str(1-Ac/T)]);
+            display('---------------------------------------');
+            %legenda{i}=['\theta_0=' num2str(theta(1,1)) 'sigma=' num2str(tau(i))];
+
+            fprintf(FID, '%d & %8.2f %8.2f & %8.2f & %8.2f & %8.2f & %8.2f \\\\  \\hline',i,Samples(1,i) ,Samples(2,i), a(i),b(i),Ac/T , 1-Ac/T);
+            if i==length(K)
+                fprintf(FID, '\\hline ');
+            end
+            fprintf(FID, '\n');
+
+        end
+end
+fprintf(FID, '\\end{tabular}\n\\caption{ Metropolis simulation results varying $\\theta_0$ and $\\sigma$ }\n');
+fprintf(FID, '\\end{table}\n');
+fprintf(FID, '\\end{center}\n');
+
+fclose(FID);
+%legend(legenda)

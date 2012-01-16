@@ -67,7 +67,7 @@ for trial = 1:params.nretry
         keyboard;
     end
     
-    %%%% UPDATE COVARIANCE MATRIX for Each VARIABLE in the Model:
+    %%%% UPDATE COVARIANCE MATRIX for Each VARIABLE in the Model at current time:
     %
     % - params.Pert{1} = CAMERA COV. MATRIX
     %
@@ -282,8 +282,8 @@ for trial = 1:params.nretry
             temptempsamples = [temptempsamples, sample];
         end
     end
-    %DrawSample(maxsample,TrialFig(trial),ColorTrial) ;
-     % Disegno la posizione della Camera
+    
+    % Disegno la posizione della Camera
     if isempty(tempcam)==0 
         plot3(tempcam(7,:),tempcam(8,:),tempcam(2,:),'o','MarkerFaceColor',Colore,'MarkerEdgeColor',Colore,'MarkerSize',5);    %Get Priors 
     end
@@ -374,18 +374,21 @@ for trial = 1:params.nretry
     Z.beta(:,:,:,trial) = mean(tempbeta, 4);
     Z.W(trial) = 1/params.nretry;
 %     dbglist
-
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %     SEARCH FOR MAX A POSTERIOR point
     %%%% test max point!
     tsample.cam = Z.cam(:, trial);
     tsample.car = reshape(Z.car(:, trial), 7, length(Z.car(:, trial)) / 7);
     tsample.per = reshape(Z.per(:, trial), 6, length(Z.per(:, trial)) / 6);
     tsample.gfeat = reshape(Z.gfeat(:, trial), 3, length(Z.gfeat(:, trial)) / 3);
-    
-    [tttprob] = computeLogPosterior(tsample, prevZ, X, Y, Xc, KLT, corres, corres_car, params);
+    %%POSTERIOR
+    [tttprob] =... 
+    computeLogPosterior(tsample, prevZ, X, Y, Xc, KLT, corres, corres_car, params);
     display(['[Debug!!!] prob ratio = ' num2str(exp(tttprob - max_prob))]);
     
     Z.W(trial) = (tttprob);
     if (tttprob - max_prob) < log(0.4)
+        %UPADATE THE MAX
         Z.cam(:, trial) = maxsample.cam;
         Z.car(:, trial) = reshape(maxsample.car, prod(size(maxsample.car)), 1);
         Z.per(:, trial) = reshape(maxsample.per, prod(size(maxsample.per)), 1);
