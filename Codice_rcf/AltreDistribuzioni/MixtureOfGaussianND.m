@@ -21,13 +21,11 @@
 % funzione realizzata senza l'uso dei FOR
 function P=MixtureOfGaussianND(X,U,S,Pi)
  %Get number of Points --> rows in X
- NumOfPoints=size(X,1);
- %Px
- for i=1:NumOfPoints
+ NumOfGaussian=size(U,1);
+ P=zeros(size(X,1),1);
+ for i=1:NumOfGaussian
      %Valuta X su tutte le Gaussiane
-    Px=mvnpdf(X(i,:),U,S);
-    %Mixing
-    Px=Px.'*Pi;
-    P(i)=Px;
+    P=P+Pi(i)*mvnpdf(X,U(i,:),S(:,:,i));
+   
  end 
  
