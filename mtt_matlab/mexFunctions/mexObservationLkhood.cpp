@@ -36,7 +36,8 @@ double *getProjection(double *state, double *cam, int camlen)
     
     return ret;
 }
-
+//distanza di due vettori pesata con i coefficienti di w e normalizzata 
+// rispetto a norm
 double getWeightedDistance(double *x, double *y, double *w, double norm)
 {
     double dist = 0, temp;

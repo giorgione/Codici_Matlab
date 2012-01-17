@@ -25,7 +25,9 @@ thetamax = [ 50 50 ]; % define maximum for theta1 and theta2
 
 
 %Mixture of 3 Gaussians
-U=[10 10;15 15; 20 20];
+U=[10 10;
+    15 15; 
+    20 20];
  S=zeros(2,2,3);
  S(:,:,1)=3*diag([1;1]);
  S(:,:,2)=S(:,:,1);
@@ -39,23 +41,24 @@ thetabins1 = linspace( thetamin(1) , thetamax(1) , nbins );
 thetabins2 = linspace( thetamin(2) , thetamax(2) , nbins );
 
 %% Draw the distribution
-[X Y]=meshgrid(linspace( thetamin(1) , thetamax(1) , 30 ), ...
-    linspace( thetamin(2) , thetamax(2) , 100));
+[X Y]=meshgrid(linspace( thetamin(1) , thetamax(1) , 30 )', ...
+    linspace( thetamin(2) , thetamax(2) , 100)');
 [m,n]=size(X);
  %Passo le Osservazioni per RIGHE
- x=reshape(X,m*n,1);
- y=reshape(Y,m*n,1);
- XX=[ x y];
+ XX=[X(:) Y(:)];
  
  ZZ=MixtureOfGaussianND(XX,U,S,Pi);
  Z=reshape(ZZ,m,n);
- 
+%  mesh(X,Y,Z);hold on;
+%  plot(U(:,1),U(:,2),'or','MarkerFaceColor','r', ...
+%                 'MarkerEdgeColor','r','Markersize',5);
+% axis equal
 %Numero Simulazioni
 K=3;
 Na=4;
 Nb=4;
 NPar=Na*Nb;
-[a,b]=meshgrid(linspace(0.1,2,Na),linspace(1,5,Nb));
+[a,b]=meshgrid(linspace(0.1,2,Na),linspace(1,3,Nb));
 a=reshape(a,1,NPar);
 b=reshape(b,1,NPar);
 i=find(a<b);
@@ -92,26 +95,26 @@ for j=1:NPuntiIniziali
 
             figure( i ); clf;
 
-            %% Display histogram of our samples
-            subplot( 2,1,1 );
-            nbins = 50;
-
-            hist3( Samples.' , 'Edges' , {thetabins1 thetabins2} );
-            xlabel( '$\theta_1$','Interpreter', 'latex'); 
-            xlabel( '$\theta_2$','Interpreter', 'latex'); 
-            zlabel( 'counts' );
-            az = 61; el = 30; view(az, el);
-
-
-
-
-            %% Display history of our samples
-            subplot( 2,1,2 );
+%             %% Display histogram of our samples
+%             subplot( 2,1,1 );
+%             nbins = 50;
+% 
+%             hist3( Samples.' , 'Edges' , {thetabins1 thetabins2} );
+%             xlabel( '$\theta_1$','Interpreter', 'latex'); 
+%             xlabel( '$\theta_2$','Interpreter', 'latex'); 
+%             zlabel( 'counts' );
+%             az = 61; el = 30; view(az, el);
+% 
+% 
+% 
+% 
+%             %% Display history of our samples
+%             subplot( 2,1,2 );
             zlabel( 't');
             xlabel( '$\theta_1^t$','Interpreter', 'latex'); 
             ylabel( '$\theta_2^t$','Interpreter', 'latex'); 
             %%Disegno la distribuzione campionata
-            contour(Z);hold on
+            contour(X,Y,Z);hold on
             plot3(Samples(1,:),Samples(2,:),zeros(T),'or-','MarkerFaceColor','r', ...
                 'MarkerEdgeColor','r','Markersize',5); 
             axis([0 50 0 50]);

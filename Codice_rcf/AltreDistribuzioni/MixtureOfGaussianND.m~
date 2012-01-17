@@ -19,13 +19,13 @@
 %
 %
 % funzione realizzata senza l'uso dei FOR
-function Px=MixtureOfGaussianND(X,U,S,Pi)
- %Get number of gaussian
- NumOfPoints=length(X);
- %Px
- for i=1:NumOfPoints
+function P=MixtureOfGaussianND(X,U,S,Pi)
+ %Get number of Points --> rows in X
+ NumOfGaussian=size(U,1);
+ P=zeros(size(X));
+ for i=1:NumOfGaussian
      %Valuta X su tutte le Gaussiane
- Px=mvnpdf(X(:,i),U,S);
-  
- 
+    P=P+Pi(i)*mvnpdf(X,U(i,:),S(:,:,i));
+   
+ end 
  
