@@ -2,8 +2,8 @@
 %
 %Genero dei punti da una Mistura di gaussiane 2D
 clc;clear;close all;
-Irgb=imread('../Documents/DataSets/AVSS_Easy/Frame0000.jpg');
-Irgb=Irgb(1:7:end,1:7:end,:);
+Irgb=imread('./limit30.png');
+Irgb=Irgb(1:6:end,1:6:end,:);
 figure(1);
 imshow(Irgb);
 R=Irgb(:,:,1);
@@ -42,7 +42,7 @@ x = sym('x','real');
 y = sym('y','real');
 Z=[x;y]
 
-h=0.1;
+h=0.3;
 
 %Eseguo T iterazioni per vedere dove va il Mean shift
 T=50;
@@ -52,7 +52,7 @@ Xp=zeros(2,T);
 %Salvo la lista dei Punti Visitati
 NVPoints=1:Npoints;
 
-Soglia=10^-2;
+Soglia=0.25;
 
 %Numero Mode
 NModes=0;
@@ -92,6 +92,8 @@ while isempty(NVPoints)==0
                 Nx=Nx+1;
                 %indici dei punti visitati
                 VPoints=union(VPoints,i);
+                
+                
             end        
        end
 
@@ -147,7 +149,8 @@ while isempty(NVPoints)==0
   
     
 end
-
+figure(2);
+hold on
 for i=1:NModes
     [j]=find(Label==i);
     colore=Modes(:,i);
@@ -174,6 +177,15 @@ Ic(:,:,2)=G1;
 Ic(:,:,3)=B1; 
 figure(4)
 imshow(Ic)
+
+Gray=round(linspace(1,255,NModes));
+Label1=Label
+for i=1:NModes
+    idx=(Label==i);
+    Label1(idx)=Gray(i);
+end
+Igray=reshape(Label1,m,n)
+imshow(Igray);
 
 %Pixel Totali Elaborati
 TotPixel=0;
