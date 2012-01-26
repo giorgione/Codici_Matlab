@@ -12,7 +12,7 @@ Irgb=[];
 %Pixel Concatenati
 Xi=[];
 %par
-for i = 2:length(files)
+for i = 1:2%length(files)
 	filename = ['./' files(i).name];
    
     Irgb_orig=imread(filename);
@@ -84,12 +84,11 @@ Soglia=0.25;
 %Numero Mode
 NModes=0;
 Modes=[];
-while isempty(NVPoints)==0
-    
+for Xindex=1:m
+        
     %% Mean Shift sul singolo punto X
     
     %Ottieni il punto iniziale dall'insieme dei punti non ancora visitati.
-    Xindex=NVPoints(1);
     X=Xi(:,Xindex);
     %plot(X(1),X(2),'og');hold on
 
@@ -118,7 +117,7 @@ while isempty(NVPoints)==0
                 Sx=[Sx Xi(:,i)];
                 Nx=Nx+1;
                 %indici dei punti visitati
-                VPoints=union(VPoints,i);
+                %VPoints=union(VPoints,i);
                 
                 
             end        
@@ -172,7 +171,7 @@ while isempty(NVPoints)==0
     end
      
     %Setta tutti i punti visitati col valore della Moda trovata
-    Label(VPoints)=LabelIndex;
+    Label(Xindex)=LabelIndex;
   
     
 end
