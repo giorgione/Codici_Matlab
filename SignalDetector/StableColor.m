@@ -12,7 +12,10 @@ Irgb=[];
 %Pixel Concatenati
 Xi=[];
 %par
-for i = 1:2%length(files)
+ 
+RowWhite=ones(10,64,3);
+Irgb=RowWhite;
+for i = 1:length(files)
 	filename = ['./' files(i).name];
    
     Irgb_orig=imread(filename);
@@ -25,15 +28,21 @@ for i = 1:2%length(files)
     
     %Normalize
     IrgbTmp=im2double(IrgbTmp);
+    
     Irgb=cat(1,Irgb,IrgbTmp);
-
+    Irgb=cat(1,Irgb,RowWhite);
 end
+
+[m,n,c]=size(Irgb);
+ColonWhite=ones(m,10,3);
+Irgb=cat(2,ColonWhite,Irgb);
+Irgb=cat(2,Irgb,ColonWhite);
+[m,n,c]=size(Irgb);
+Npoints=m*n;
 figure(1);
 imshow(Irgb);
 drawnow
 pause
-[m,n,c]=size(Irgb);
-Npoints=m*n;
 
 R=Irgb(:,:,1);
 G=Irgb(:,:,2);
@@ -71,12 +80,12 @@ Labels=zeros(1,Npoints);
 
 
 %Eseguo T iterazioni per vedere dove va il Mean shift
-T=50;
+T=15;
 t=2;
  
-Xp=zeros(2,T);
+Xp=zeros(3,T);
 %Salvo la lista dei Punti Visitati
-NVPoints=1:Npoints;
+NVPoints=[];
 
 h=0.55;
 Soglia=0.25;
@@ -84,12 +93,14 @@ Soglia=0.25;
 %Numero Mode
 NModes=0;
 Modes=[];
-for Xindex=1:m
+Pindex=1:Npoints;
+for Xindex=1:Npoints
         
     %% Mean Shift sul singolo punto X
     
     %Ottieni il punto iniziale dall'insieme dei punti non ancora visitati.
     X=Xi(:,Xindex);
+    
     %plot(X(1),X(2),'og');hold on
 
     % Valore Iniziale per il criterio  di Arresto
@@ -107,20 +118,50 @@ for Xindex=1:m
        %Circ= (Z-X).'*(Z-X)-h^2;
        %ezplot(Circ,[-10^2 10^2])
        
+       % Ottimizzato per MATLAB: Molto + veloce
        %Cerco i punti che cadono nell'IperSfera Centrata in X
        Sx=[];
+       Sindex=[];
        Nx=0; 
-
-       for i=1:Npoints
-            if (X-Xi(:,i)).'*(X-Xi(:,i))< h^2
-                %Insieme dei Pixel che cadono nell'intorno
-                Sx=[Sx Xi(:,i)];
-                Nx=Nx+1;
-                %indici dei punti visitati
-                %VPoints=union(VPoints,i);
-                
-                
-            end        
+       Xrep=repmat(X,1,Npoints);
+       Xtmp=Xi-Xrep;
+       Xtmp=Xtmp.^2;
+       Xtmp=sum(Xtmp)-h^2;
+       j=Xtmp<0;
+       Sindex=Pindex(j);      %Indice punti nell'intorno
+       Sx=Xi(:,Sindex);       %Colore dei punti
+       Nx=length(Sindex);     %Numero di Punti nell'intorno
+       
+% VERSIONE NON OTTIMIZZATA       
+%        for i=1:Npoints
+%             if (X-Xi(:,i)).'*(X-Xi(:,i))< h^2
+%                 %Insieme dei Pixel il cui COLORE cade nell'intorno del
+%                 %COLORE corrente X
+%                 Sx=[Sx Xi(:,i)];
+%                 Sindex=[Sindex i];
+%                 Nx=Nx+1;
+%                 %indici dei punti visitati
+%                 %VPoints=union(VPoints,i);
+%                 
+%                 
+%             end        
+%        end
+       
+       %Per ogni punto che cade vado a vedere se:
+       %
+       % 1) e' stato gia visitato
+       %
+       % 2) qual'e' la moda + ricorrente
+       %
+       % Assegno la Moda + ricorrente nell'intorno al pixel
+       H=hist(Labels(Sindex),0:NModes);
+       H=H/sum(H);
+       
+       [MaxMode j]=max(H);
+       if j>1 | sum(H(2:end)) > 0.6
+           [MaxMode j]=max(H(2:end));
+           Labels(Xindex)=j;
+           break;
        end
 
        X=repmat(X,1,Nx);
@@ -141,7 +182,9 @@ for Xindex=1:m
     end
     
     %Aggiorna l' insieme dei Punti NON VISITATI
-    NVPoints=setdiff(NVPoints,VPoints);
+    %NVPoints=setdiff(NVPoints,VPoints);
+    NVPoints=[NVPoints Xindex];
+    
     %plot(Xi(1,VPoints),Xi(2,VPoints),'+m');
      
     %Definizione delle Mode
@@ -160,25 +203,31 @@ for Xindex=1:m
         if(val<=h)
             %Moda già trovata
             LabelIndex=j;
+            ModaCur=Modes(:,j);
         else
             %Nuova Moda
             NModes=NModes+1
-            %Aggiungo la Nuova Moda alla lista delle Mode
-            Modes=[Modes X];
+            %Aggiungo la Nuova Moda (X) alla lista delle Mode
+            ModaCur=X;
+            Modes=[Modes ModaCur];
             %Label della Nuova Moda
             LabelIndex=NModes;
         end
+        
+         
+        
+        
     end
      
     %Setta tutti i punti visitati col valore della Moda trovata
-    Label(Xindex)=LabelIndex;
+    Labels(Xindex)=LabelIndex;
   
-    
+    disp([ num2str(Xindex) ' : ' num2str(LabelIndex) ])
 end
 
 figure(6);hold on; grid on
 for i=1:NModes
-    [j]=find(Label==i);
+    [j]=find(Labels==i);
     colore=Modes(:,i);
     X=zeros(length(j),3);
     plot3(Xi(1,j),Xi(2,j),Xi(3,j),'o','MarkerFaceColor',colore, ...
@@ -195,7 +244,8 @@ for i=1:NModes
     Cluster(i).Cov=cov(X);
     Cluster(i).Data=X;
     Cluster(i).Mode=colore.';
-    Cluster(i).Dmax=norm(Cluster(i).Mean-Cluster(i).Mode);
+    Cluster(i).Dmax=mvnpdf(Cluster(i).Mode,Cluster(i).Mean,Cluster(i).Cov)
+    norm(Cluster(i).Mean-Cluster(i).Mode);
     Cluster(i).Npixel=size(X,1);
     
     disp(['Cluster ' num2str(i) ' : '  num2str(Cluster(i).Npixel)])
@@ -208,9 +258,9 @@ for i=1:NModes
     disp('Cov:')
     disp(Cluster(i).Cov )
     
-    Rc(j)=Modes(1,i);
-    Gc(j)=Modes(2,i);
-    Bc(j)=Modes(3,i);
+    Rc(j)=Cluster(i).Mean(1);
+    Gc(j)=Cluster(i).Mean(2);
+    Bc(j)=Cluster(i).Mean(3);
 end
 
 %Genero l'immagine clusterizzata
@@ -232,52 +282,7 @@ figure(3)
 %Filtragggio su Colore
 % 1) Seleziona i colori che discostano da una certa soglia dal valore medio
 %    di ogni cluster rilevato in precedenza
-for i=1:NModes
-    ImTmp=mahal(FrameI.',Cluster(i).Data);
-
-    %
-    figure(3)
-    subplot(1,4,1)
-    Max=max(ImTmp);
-    ImTmp=ImTmp./Max;
-    imshow(Ic)
-    %imshow(reshape(1-ImTmp,m,n))
-   
-    %
-    subplot(1,4,2)
-    ImColor=zeros(m,n,3);
-    ImColor(:,:,1)=Cluster(i).Mean(1);
-    ImColor(:,:,2)=Cluster(i).Mean(2);
-    ImColor(:,:,3)=Cluster(i).Mean(3);
-    imshow(ImColor) 
-    
-    %figure(5)
-    subplot(1,4,3)
-    ImColor=zeros(m,n,3);
-    ImColor(:,:,1)=Cluster(i).Mode(1);
-    ImColor(:,:,2)=Cluster(i).Mode(2);
-    ImColor(:,:,3)=Cluster(i).Mode(3);
-    imshow(ImColor) 
-    
-    figure(4)
-    hist(ImTmp,linspace(0,1,100));hold on;
-    plot(Cluster(i).Dmax *ones(1,3),linspace(0,9000,3),'r')
-    plot(linspace(0,1,3),ones(1,3)*Cluster(i).Npixel  ,'m')
-    
-    Y= hist(ImTmp,linspace(0,1,100));
-    Ycum=cumsum(Y);
-    idx=find(Ycum > Cluster(i).Npixel);
-    plot(ImTmp(idx(1)) *ones(1,3),linspace(0,9000,3),'g')
-    
-    figure(3)
-    subplot(1,4,4)
-    idx=(ImTmp < ImTmp(idx(1) ));
-    ImF=zeros(m*n,1);
-    ImF(idx)=1;
-    imshow(reshape(ImF,m,n))
-    pause;
-    clf(4);
-end
+DrawFiltering
 
 
 
